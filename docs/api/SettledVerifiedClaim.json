@@ -1,0 +1,57 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SettledVerifiedClaim",
+  "description": "A settled (verified) claim",
+  "type": "object",
+  "required": [
+    "verified_claim",
+    "verifiers"
+  ],
+  "properties": {
+    "verified_claim": {
+      "description": "the claim which was verified",
+      "allOf": [
+        {
+          "$ref": "#/definitions/VerifiedClaim"
+        }
+      ]
+    },
+    "verifiers": {
+      "description": "the (Ethereum-style) addresses of the verifiers which have verified the claim and are part of the quorum",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "definitions": {
+    "VerifiedClaim": {
+      "description": "Representation of a verified claim",
+      "type": "object",
+      "required": [
+        "claim",
+        "claim_id",
+        "claim_owner",
+        "claim_type"
+      ],
+      "properties": {
+        "claim": {
+          "description": "the original claim which was verified and now settled",
+          "type": "string"
+        },
+        "claim_id": {
+          "description": "the id (hex-encoded 256 bit hash) of the claim (useful for retrieving the full data of the claim)",
+          "type": "string"
+        },
+        "claim_type": {
+          "description": "the claim type",
+          "type": "string"
+        },
+        "claim_owner": {
+          "description": "the (Ethereum-style) address of the client which produced this claim",
+          "type": "string"
+        }
+      }
+    }
+  }
+}

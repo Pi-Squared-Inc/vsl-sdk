@@ -1,0 +1,35 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "TransferAssetMessage",
+  "description": "An (unsigned) vsl_transferAsset request",
+  "type": "object",
+  "required": [
+    "amount",
+    "asset_id",
+    "from",
+    "nonce",
+    "to"
+  ],
+  "properties": {
+    "from": {
+      "description": "The (Ethereum-style) address of the account transfering the asset",
+      "type": "string"
+    },
+    "nonce": {
+      "description": "The nonce (64 bit unsigned integer) of the account transfering the asset",
+      "type": "string"
+    },
+    "asset_id": {
+      "description": "The id (hex-encoded 256 bit hash) of the asset (returned when asset was created)",
+      "type": "string"
+    },
+    "to": {
+      "description": "The (Ethereum-style) address of the account receiving the asset",
+      "type": "string"
+    },
+    "amount": {
+      "description": "The amount (of asset) to be transfered (u128 formatted as hex string)",
+      "type": "string"
+    }
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "PayMessage",
+  "description": "An (unsigned) vsl_pay request (in VSL tokens)",
+  "type": "object",
+  "required": [
+    "amount",
+    "from",
+    "nonce",
+    "to"
+  ],
+  "properties": {
+    "from": {
+      "description": "The (Ethereum-style) address of the account requesting the transfer",
+      "type": "string"
+    },
+    "to": {
+      "description": "The (Ethereum-style) address of the account receiving the payment",
+      "type": "string"
+    },
+    "amount": {
+      "description": "The amount to be transfered (u128 formatted as hex string)",
+      "type": "string"
+    },
+    "nonce": {
+      "description": "The nonce (64 bit unsigned integer) of the account creating the asset",
+      "type": "string"
+    }
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SettleClaimMessage",
+  "description": "An (unsigned) vls_settleClaim request made by a verifier having verified the claim",
+  "type": "object",
+  "required": [
+    "from",
+    "nonce",
+    "target_claim_id"
+  ],
+  "properties": {
+    "from": {
+      "description": "The (Ethereum-style) address of the verifier requesting claim settlement",
+      "type": "string"
+    },
+    "nonce": {
+      "description": "The nonce (64 bit unsigned integer) of the verifier requesting claim settlement",
+      "type": "string"
+    },
+    "target_claim_id": {
+      "description": "The id (hex-encoded 256 bit hash) of the claim for which claim settlement is requested",
+      "type": "string"
+    }
+  }
+}

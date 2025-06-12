@@ -1,0 +1,24 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Timestamp",
+  "description": "Records the time elapsed from the [UNIX_EPOCH]",
+  "type": "object",
+  "required": [
+    "nanos",
+    "seconds"
+  ],
+  "properties": {
+    "seconds": {
+      "description": "Time elapsed from the [UNIX_EPOCH] (in seconds, truncated)",
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0.0
+    },
+    "nanos": {
+      "description": "the _remaining fraction_ of a second, expressed in nano-seconds",
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 0.0
+    }
+  }
+}

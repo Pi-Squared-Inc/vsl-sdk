@@ -1,0 +1,110 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Timestamped_for_SettledVerifiedClaim",
+  "description": "Some data with an identifier and an associated timestamp",
+  "type": "object",
+  "required": [
+    "data",
+    "id",
+    "timestamp"
+  ],
+  "properties": {
+    "id": {
+      "description": "Usually a claim identifier (hex-encoded 256 bit hash)",
+      "type": "string"
+    },
+    "data": {
+      "description": "The data being timestamped",
+      "allOf": [
+        {
+          "$ref": "#/definitions/SettledVerifiedClaim"
+        }
+      ]
+    },
+    "timestamp": {
+      "description": "The Timestamp itself",
+      "allOf": [
+        {
+          "$ref": "#/definitions/Timestamp"
+        }
+      ]
+    }
+  },
+  "definitions": {
+    "SettledVerifiedClaim": {
+      "description": "A settled (verified) claim",
+      "type": "object",
+      "required": [
+        "verified_claim",
+        "verifiers"
+      ],
+      "properties": {
+        "verified_claim": {
+          "description": "the claim which was verified",
+          "allOf": [
+            {
+              "$ref": "#/definitions/VerifiedClaim"
+            }
+          ]
+        },
+        "verifiers": {
+          "description": "the (Ethereum-style) addresses of the verifiers which have verified the claim and are part of the quorum",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "VerifiedClaim": {
+      "description": "Representation of a verified claim",
+      "type": "object",
+      "required": [
+        "claim",
+        "claim_id",
+        "claim_owner",
+        "claim_type"
+      ],
+      "properties": {
+        "claim": {
+          "description": "the original claim which was verified and now settled",
+          "type": "string"
+        },
+        "claim_id": {
+          "description": "the id (hex-encoded 256 bit hash) of the claim (useful for retrieving the full data of the claim)",
+          "type": "string"
+        },
+        "claim_type": {
+          "description": "the claim type",
+          "type": "string"
+        },
+        "claim_owner": {
+          "description": "the (Ethereum-style) address of the client which produced this claim",
+          "type": "string"
+        }
+      }
+    },
+    "Timestamp": {
+      "description": "Records the time elapsed from the [UNIX_EPOCH]",
+      "type": "object",
+      "required": [
+        "nanos",
+        "seconds"
+      ],
+      "properties": {
+        "seconds": {
+          "description": "Time elapsed from the [UNIX_EPOCH] (in seconds, truncated)",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        },
+        "nanos": {
+          "description": "the _remaining fraction_ of a second, expressed in nano-seconds",
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0.0
+        }
+      }
+    }
+  }
+}

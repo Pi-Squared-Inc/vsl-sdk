@@ -1,0 +1,25 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SetStateMessage",
+  "description": "An (unsigned) vsl_setState request",
+  "type": "object",
+  "required": [
+    "from",
+    "nonce",
+    "state"
+  ],
+  "properties": {
+    "from": {
+      "description": "The (Ethereum-style) address of the account requesting its state to be changed",
+      "type": "string"
+    },
+    "nonce": {
+      "description": "The nonce (64 bit unsigned integer) of the account requesting its state to be changed",
+      "type": "string"
+    },
+    "state": {
+      "description": "The new state (hex-encoded 256 bit hash)",
+      "type": "string"
+    }
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "CreateAssetMessage",
+  "description": "An (unsigned) vsl_createAsset request",
+  "type": "object",
+  "required": [
+    "account_id",
+    "nonce",
+    "ticker_symbol",
+    "total_supply"
+  ],
+  "properties": {
+    "account_id": {
+      "description": "The (Ethereum-style) address of the account creating the asset",
+      "type": "string"
+    },
+    "nonce": {
+      "description": "The nonce (64 bit unsigned integer) of the account creating the asset",
+      "type": "string"
+    },
+    "ticker_symbol": {
+      "description": "Ticker symbol to be used for the new asset",
+      "type": "string"
+    },
+    "total_supply": {
+      "description": "The amount to initialize the new asset with (u128 formatted as hex string)",
+      "type": "string"
+    }
+  }
+}
