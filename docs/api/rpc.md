@@ -93,9 +93,9 @@ String
 
 Yields (recent) settled claims for a receiver.
 
-- Input: the address for which settled claims are tracked (use `None` for all claims).
+- Input: the (Ethereum-style) address for which settled claims are tracked (optional).
 - Input: a [Timestamp](#timestamp) (`since`)
-- Returns: the list of timestamped and signed [SettledVerifiedClaim](#settledverifiedclaim)s recorded since the given timestamp.
+- Returns: the list of most recent timestamped and signed [SettledVerifiedClaim](#settledverifiedclaim)s recorded since the given timestamp (limited at 64 entries).
 
 Will fail if:
 
@@ -116,9 +116,9 @@ Vec< [Timestamped](#timestamped)< Signed< [SettledVerifiedClaim](#settledverifie
 
 Yields (recent) claim verification requests for a receiver.
 
-- Input: the address for which claims requests are tracked.
+- Input: the (Ethereum-style) address for which claims requests are tracked.
 - Input: a [Timestamp](#timestamp) (`since`)
-- Returns: the list of timestamped and signed [SubmittedClaim](#submittedclaim)s recorded since the given timestamp.
+- Returns: the list of most recent timestamped and signed [SubmittedClaim](#submittedclaim)s recorded since the given timestamp (limited at 64 entries).
 
 Will fail if:
 
@@ -139,9 +139,9 @@ Vec< [Timestamped](#timestamped)< Signed< [SubmittedClaim](#submittedclaim) > > 
 
 Yields (recent) settled claims from an address.
 
-- Input: the address that submitted the claims for settlement.
+- Input: the (Ethereum-style) address that submitted the claims for settlement.
 - Input: a [Timestamp](#timestamp) (`since`).
-- Returns: the list of timestamped and signed [SettledVerifiedClaim](#settledverifiedclaim)s recorded since the given timestamp.
+- Returns: the list of most recent timestamped and signed [SettledVerifiedClaim](#settledverifiedclaim)s recorded since the given timestamp (limited at 64 entries).
 
 Will fail if:
 
@@ -162,9 +162,9 @@ Vec< [Timestamped](#timestamped)< Signed< [SettledVerifiedClaim](#settledverifie
 
 Yields (recent) claim verification requests from an address.
 
-- Input: the address that submitted the claims for verification.
+- Input: the (Ethereum-style) address that submitted the claims for verification.
 - Input: a [Timestamp](#timestamp) (`since`)
-- Returns: the list of timestamped and signed [SubmittedClaim](#submittedclaim)s recorded since the given timestamp.
+- Returns: the list of most recent timestamped and signed [SubmittedClaim](#submittedclaim)s recorded since the given timestamp (limited at 64 entries).
 
 Will fail if:
 
@@ -235,7 +235,7 @@ Retrieves information about a specific account.
 
 Currently not implemented
 
-- Input: the account address to query.
+- Input: the (Ethereum-style) address of the account to query.
 - Returns: a JSON string representing the account's metadata.
 
 **Parameters**:
@@ -252,7 +252,7 @@ String
 
 Retrieves the native token balance of a given account.
 
-- Input: the account address to query.
+- Input: the (Ethereum-style) address of the account to query.
 - Returns: the balance as a base-10 string of the u128 value
 
 Will fail if:
@@ -273,8 +273,8 @@ String
 
 Retrieves the balance of a specific asset held by an account.
 
-- Input: the account address.
-- Input: the asset ID to query.
+- Input: the (Ethereum-style) address of the account to query.
+- Input: the asset ID(hex-encoded 256 bit) to query.
 - Returns: the asset balance as a base-10 string of the u128 value
 
 Will fail if:
@@ -296,7 +296,7 @@ String
 
 Retrieves the balances of all assets held by an account.
 
-- Input: the account address to query.
+- Input: the (Ethereum-style) address of the account to query.
 - Returns: a map of asset IDs to balances as a base-10 string of the u128 value
 
 Will fail if:
@@ -320,7 +320,7 @@ Creates a new asset on the network.
 - A [SettledVerifiedClaim](#settledverifiedclaim) will be recorded containing the json-serialized [CreateAssetMessage](#createassetmessage) as its claim
 
 - Input: a signed [CreateAssetMessage](#createassetmessage) defining the asset properties.
-- Returns: the asset ID of the newly created asset.
+- Returns: the asset ID (hex-encoded 256 bit) of the newly created asset.
 
 Will fail if:
 
@@ -388,6 +388,8 @@ String
 Returns the account's current state, or null if unset.
 The state is a 256-bit hash formatted as a hex string starting 0x
 
+- Input: the (Ethereum-style) address of the account to query.
+
 Will fail if:
 
 - `account_id` not valid
@@ -430,7 +432,7 @@ String
 
 Returns the account's current nonce
 
-- Input: the account address
+- Input: the (Ethereum-style) address of the account to query.
 
 Will fail if:
 
@@ -462,8 +464,8 @@ String
 
 [Subscription](https://geth.ethereum.org/docs/rpc/pubsub) to the settled claims for a receiver
 
-- input: the address for which settled claims are tracked (use `None` for all claims)
-- yields: a stream of timestamped signed [SettledVerifiedClaim](#settledverifiedclaim)s for the given address
+- Input: the (Ethereum-style) address of the account for which settled claims are tracked (optional)
+- yields: a stream of timestamped signed [SettledVerifiedClaim](#settledverifiedclaim)s for the given account (or for all accounts)
 
 **Parameters**:
 
@@ -479,7 +481,7 @@ SubscriptionResult
 
 [Subscription](https://geth.ethereum.org/docs/rpc/pubsub) to the claim verification requests for a receiver
 
-- input: the address for which claim requests are tracked
+- Input: the (Ethereum-style) address of the account for which settled claims are tracked
 - yields: a stream of timestamped signed [SubmittedClaim](#submittedclaim)s for the given address
 
 **Parameters**:
