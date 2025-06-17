@@ -20,6 +20,7 @@ It is also built as an example of claim verification and settlement.
 ## Quickstart
 
 From this directory, the following commands will get you started quickly:
+
 To start the faucet verifier, run the command below:
 
 ```bash
