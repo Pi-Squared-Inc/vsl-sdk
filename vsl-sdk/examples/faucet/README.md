@@ -8,27 +8,28 @@ It is also built as an example of claim verification and settlement.
 
 ### Basic workflow
 
-- client submits a claim with "claim" field being the amount requested and listing the [faucet verifier](faucet_verifier.rs) as (one of the) verifier(s)
-  - if it's the first time requesting funds, it also sends as "proof" the id of a settled claim representing a payment to itself from the "master account" (the account we use to initialize whitelisted accounts with funds).
-- the faucet verifier listens for submitted claims addresses to itself and checks whether the client is entitled to receive funds from the faucet, that is
-  - if it has previously received funds from the faucet
-    - the verifier checks that enough time has elapsed since the last request (the verifier maintains a database with timestamps of the latest requests per account); or
-  - if it is its first time requesting funds, the verifier checks the validity of the "proof"
-- if the above conditions are met, the verifier settles the claim
-- the [faucet](faucet.rs) listens for claims settled by the faucet verifier and just fulfills  the requests
+- A client submits a claim with the "claim" field being the amount requested and listing the [faucet verifier](faucet_verifier.rs) as (one of the) verifier(s)
+  - If it's the first time requesting funds, it also sends as "proof" the ID of a settled claim representing a payment to itself from the "master account" (the account we use to initialize whitelisted accounts with funds).
+- The faucet verifier listens for submitted claims addresses to itself and checks whether the client is entitled to receive funds from the faucet, that is
+  - If it has previously received funds from the faucet
+    - The verifier checks that enough time has elapsed since the last request (the verifier maintains a database with timestamps of the latest requests per account); or
+  - If it is its first time requesting funds, the verifier checks the validity of the "proof"
+- If the above conditions are met, the verifier settles the claim
+- The [faucet](faucet.rs) listens for claims settled by the faucet verifier and just fulfills  the requests
 
 ## Quickstart
 
-Form this directory, use
+From this directory, the following commands will get you started quickly:
+To start the faucet verifier, run the command below:
+
 ```bash
 cargo run --example faucet-verifier
 ```
-to start the faucet verifier, and
 
+To start the faucet, run the command below:
 ```bash
 cargo run --example faucet
 ```
-to start the faucet itself.
 
 ## Configuration
 
@@ -74,7 +75,7 @@ max_amount: 100
 | `vsl_server_addr`   | Address and port of the VSL RPC server node.                             |
 | `max_amount`        | Maximum token amount (in atto-tokens) that can be fulfilled per request. |
 
-For full information please run the examples with the `--help` option.
+For full list of options, please run the examples with the `--help` option.
 
 ```bash
 cargo run --example faucet-verifier -- --help
