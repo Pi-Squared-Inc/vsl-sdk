@@ -38,76 +38,41 @@ The two executables rely on YAML configuration file for initialization. Alter th
 
 ```yml
 private_key: 79eb4ee7c5061998e04cae9859485b51ba37e1865d11454c404991eea58acabf
-```
-
-The private key of the faucet verifier. Used for signing (settlement) requests.
-
-```yml
 vsl_server_addr: 127.0.0.1:44444
-```
-
-The address (and port) of the RPC server node.
-
-```yml
 master_account_address: 0x1010101010101010101010101010101010101010
-```
-
-The address of the "master" account used to grant initial funds to accounts.
-
-```yml
 validator_address: 0x1010101010101010101010101010101010101010
-```
-
-The address of the validator (which signs claims settled on the VSL node)
-
-```yml
 max_amount: 100
-```
-
-The maximum amount (in atto-tokens) which can be requested from the faucet
-
-```yml
 min_waiting_time: 1440
-```
-
-The minimum time a client needs to wait between successful faucet requests.
-
-```yml
 db_path: faucet.db
 ```
 
-The path to the file storing the database with timestamps of the latest
-succesful faucet requests for each client.
+| Key                      | Description                                                               |
+| ------------------------ | ------------------------------------------------------------------------- |
+| `private_key`            | Private key of the faucet verifier, used for signing settlement requests. |
+| `vsl_server_addr`        | Address and port of the VSL RPC server node.                              |
+| `master_account_address` | Address of the "master" account used to initialize client accounts.       |
+| `validator_address`      | Address of the validator node that signs settled claims.                  |
+| `max_amount`             | Maximum token amount (in atto-tokens) that can be requested.              |
+| `min_waiting_time`       | Minimum wait time (in minutes) between successful requests.               |
+| `db_path`                | Path to the local database storing request timestamps per account.        |
 
 ### Sample `faucet.yml`
 
 ```yml
 private_key: 79eb4ee7c5061998e04cae9859485b51ba37e1865d11454c404991eea58acabf
-```
-
-The private key of the faucet. Used for signing (payment) requests.
-
-```yml
-validator_address:  0x1010101010101010101010101010101010101010
-```
-
-Same as above
-
-```yml
-verifier_address:  0x1010101010101010101010101010101010101010
-```
-
-The accepted faucet verifier
-
-```yml
+validator_address: 0x1010101010101010101010101010101010101010
+verifier_address: 0x1010101010101010101010101010101010101010
 vsl_server_addr: 127.0.0.1:44444
-```
-
-```yml
 max_amount: 100
 ```
 
-## More information
+| Key                 | Description                                                              |
+| ------------------- | ------------------------------------------------------------------------ |
+| `private_key`       | Private key of the faucet, used for signing payment requests.            |
+| `validator_address` | Address of the validator node that signs settled claims.                 |
+| `verifier_address`  | Address of the accepted faucet verifier.                                 |
+| `vsl_server_addr`   | Address and port of the VSL RPC server node.                             |
+| `max_amount`        | Maximum token amount (in atto-tokens) that can be fulfilled per request. |
 
 For full information please run the examples with the `--help` option.
 
