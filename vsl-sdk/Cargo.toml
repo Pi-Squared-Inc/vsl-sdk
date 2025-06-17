@@ -3,6 +3,14 @@ name = "vsl-sdk"
 version = "0.1.0"
 edition = "2024"
 
+[[example]]
+name = "faucet"
+path = "examples/faucet/faucet.rs"
+
+[[example]]
+name = "faucet-verifier"
+path = "examples/faucet/faucet_verifier.rs"
+
 [dependencies]
 alloy = "0.15.10"
 alloy-rlp = "0.3.12"
@@ -12,3 +20,10 @@ linera-base = { git = "https://github.com/linera-io/linera-protocol", rev = "57b
 schemars = { version = "0.8.22", features = ["preserve_order"] }
 serde = { version = "1.0.219", features = ["derive"] }
 serde_json = { version = "1.0.140" }
+
+[dev-dependencies]
+bincode = "2.0.1"
+clap = { version = "4.5.40", features = ["derive"] }
+config = "0.15.11"
+sled = "0.34.7"
+tokio = "1.45.1"
