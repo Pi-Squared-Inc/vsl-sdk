@@ -145,7 +145,7 @@ pub enum RpcWrapperError {
     AmountError(String),
     AssetError(BcsHexParseError),
     ParseError(String),
-    GenericError(String),
+    NonExistentAsset,
 }
 
 impl From<RpcError> for RpcWrapperError {
@@ -408,7 +408,7 @@ where
         amount: &Amount,
     ) -> RpcWrapperResult<B256> {
         let Some(asset_data) = self.get_asset_by_id(asset_id).await? else {
-            return Err(RpcWrapperError::GenericError("Asset not found".to_string()));
+            return Err(RpcWrapperError::NonExistentAsset);
         };
         let transfer_asset_message =
             self.transfer_asset_message(asset_id, to, amount, asset_data.decimals)?;
@@ -678,7 +678,7 @@ pub async fn get_asset_balance<T: ClientT>(
     asset_id: &AssetId,
 ) -> RpcWrapperResult<Amount> {
     let Some(asset_data) = get_asset_by_id(rpc_client, asset_id).await? else {
-        return Err(RpcWrapperError::GenericError("Asset not found".to_string()));
+        return Err(RpcWrapperError::NonExistentAsset);
     };
     let response: String = rpc_client
         .request(
@@ -704,7 +704,7 @@ pub async fn get_asset_balances<T: ClientT>(
     for (asset_id, amount) in response {
         let asset_id = AssetId::from_str(&asset_id)?;
         let Some(asset_data) = get_asset_by_id(rpc_client, &asset_id).await? else {
-            return Err(RpcWrapperError::GenericError("Asset not found".to_string()));
+            return Err(RpcWrapperError::NonExistentAsset);
         };
         result.insert(asset_id, parse_token_amount(&amount, asset_data.decimals)?);
     }
