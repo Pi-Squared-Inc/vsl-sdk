@@ -2,7 +2,7 @@
 
 This is the fastest way to get a local instance of VSL and the explorer running.
 
-### Prerequisites
+## Prerequisites
 
 1. Docker + Docker Compose installed and running.
 
