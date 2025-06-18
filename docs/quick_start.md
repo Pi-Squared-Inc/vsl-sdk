@@ -36,6 +36,7 @@ docker compose -f docker-compose.public.yml up -d
 ```
 
 This runs the `vsl-core` service and the `vsl-explorer`. It maps:
+
 - Container port 44444 (used by the JSON-RPC service) to host port 44444.
 - Container port 4000 (used by the Explorer frontend) to host port 4000.
 
