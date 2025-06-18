@@ -13,12 +13,12 @@ use vsl_sdk::{
 const LOOP_INTERVAL: u64 = 5; // seconds
 
 /// Example Faucet for the VSL devnet
-/// 
+///
 /// All of the verification logic is handled by the `faucet_verifier`
-/// 
+///
 /// The faucet relies on a trusted verifier to check that the client's request
 /// meets the requirements to receive funds from the faucet.
-/// 
+///
 /// Hence, it listens to claims settled by the verifier and, trusting it,
 /// for each such claim it simply transfers the requested funds to the client.
 #[derive(Parser, Debug)]
