@@ -22,7 +22,29 @@ pub fn format_amount(amount: Amount) -> String {
     format!("{:#x}", u128::from(amount))
 }
 
+pub fn format_token_amount(amount: Amount, decimals: u8) -> RpcWrapperResult<String> {
+    assert!(decimals <= 18);
+    let mut atto_amount = u128::from(amount);
+    if decimals != 18 {
+        // Amount is using 18 decimals; scale to fit token amount decimals
+        let multiplier: u128 = 10_u128.checked_pow(18 - decimals as u32).unwrap();
+        let remainder = atto_amount % multiplier;
+        atto_amount /= multiplier;
+        if remainder != 0 {
+            return Err(RpcWrapperError::AmountError(
+                "Amount uses more decimals than allowed.".to_string(),
+            ));
+        }
+    }
+    Ok(format!("{:#x}", atto_amount))
+}
+
 pub fn parse_amount(s: &str) -> RpcWrapperResult<Amount> {
+    parse_token_amount(s, 18)
+}
+
+pub fn parse_token_amount(s: &str, decimals: u8) -> RpcWrapperResult<Amount> {
+    assert!(decimals <= 18);
     if !s.starts_with("0x") {
         return Err(RpcWrapperError::AmountError(
             "Amount should start with 0x".to_string(),
@@ -37,9 +59,81 @@ pub fn parse_amount(s: &str) -> RpcWrapperResult<Amount> {
             "Amount should not start with 0x0".to_string(),
         ));
     } else {
-        let attos =
+        let mut attos =
             u128::from_str_radix(s, 16).map_err(|e| RpcWrapperError::AmountError(e.to_string()))?;
+        if decimals != 18 {
+            // Amount is using 18 decimals; scale token amount to fit that
+            let multiplier = 10_u128.checked_pow(18 - decimals as u32).unwrap();
+            attos = match attos.checked_mul(multiplier) {
+                None => {
+                    return Err(RpcWrapperError::AmountError(
+                        "Speficied amount cannot be represented".to_string(),
+                    ));
+                }
+                Some(n) => n,
+            };
+        }
         return Ok(Amount::from_attos(attos));
+    }
+}
+
+/// Metadata about an asset
+pub struct AssetData {
+    /// The address of the account creating the asset
+    pub account_id: Address,
+    /// The nonce of the account creating the asset
+    pub nonce: u64,
+    /// Ticker symbol to be used for the new asset
+    pub ticker_symbol: String,
+    /// Number of decimals
+    pub decimals: u8,
+    /// The amount used to initialize the asset
+    pub total_supply: Amount,
+}
+
+impl TryFrom<CreateAssetMessage> for AssetData {
+    type Error = RpcWrapperError;
+
+    fn try_from(create_asset_message: CreateAssetMessage) -> Result<Self, Self::Error> {
+        let CreateAssetMessage {
+            account_id,
+            nonce,
+            ticker_symbol,
+            decimals,
+            total_supply,
+        } = create_asset_message;
+        let Ok(account_id) = Address::from_str(&account_id) else {
+            return Err(RpcWrapperError::ParseError(
+                "Cannot parse Address".to_string(),
+            ));
+        };
+        let Ok(nonce) = u64::from_str_radix(&nonce, 10) else {
+            return Err(RpcWrapperError::ParseError(
+                "Cannot parse nonce".to_string(),
+            ));
+        };
+        let total_supply = parse_token_amount(&total_supply, decimals)?;
+        Ok(Self {
+            account_id,
+            nonce,
+            ticker_symbol,
+            decimals,
+            total_supply,
+        })
+    }
+}
+
+impl TryInto<CreateAssetMessage> for AssetData {
+    type Error = RpcWrapperError;
+
+    fn try_into(self) -> Result<CreateAssetMessage, Self::Error> {
+        Ok(CreateAssetMessage {
+            account_id: self.account_id.to_string(),
+            nonce: self.nonce.to_string(),
+            ticker_symbol: self.ticker_symbol,
+            decimals: self.decimals,
+            total_supply: format_token_amount(self.total_supply, self.decimals)?,
+        })
     }
 }
 
@@ -50,6 +144,8 @@ pub enum RpcWrapperError {
     SignError(SignError),
     AmountError(String),
     AssetError(BcsHexParseError),
+    ParseError(String),
+    GenericError(String),
 }
 
 impl From<RpcError> for RpcWrapperError {
@@ -261,7 +357,8 @@ where
         decimals: u8,
         total_supply: &Amount,
     ) -> RpcWrapperResult<AssetId> {
-        let create_asset_message = self.create_asset_message(ticker_symbol, decimals, total_supply);
+        let create_asset_message =
+            self.create_asset_message(ticker_symbol, decimals, total_supply)?;
         let signed_claim = self.sign(create_asset_message)?;
         let response: String = self
             .rpc_client
@@ -276,14 +373,15 @@ where
         ticker_symbol: &str,
         decimals: u8,
         total_supply: &Amount,
-    ) -> CreateAssetMessage {
-        CreateAssetMessage {
-            account_id: self.address().to_string(),
-            nonce: self.nonce.to_string(),
+    ) -> RpcWrapperResult<CreateAssetMessage> {
+        AssetData {
+            account_id: self.address,
+            nonce: self.nonce,
             ticker_symbol: ticker_symbol.to_string(),
             decimals,
-            total_supply: format_amount(*total_supply),
+            total_supply: *total_supply,
         }
+        .try_into()
     }
 
     /// Transfers a specific asset from one account to another.
@@ -301,13 +399,18 @@ where
     ///
     /// - sender balance cannot cover validation fee
     /// - sender asset balance cannot cover `amount`
+    /// - `amount` has more decimals than allowed by
     pub async fn transfer_asset(
         &mut self,
         asset_id: &AssetId,
         to: &Address,
         amount: &Amount,
     ) -> RpcWrapperResult<B256> {
-        let transfer_asset_message = self.transfer_asset_message(asset_id, to, amount);
+        let Some(asset_data) = self.get_asset_by_id(asset_id).await? else {
+            return Err(RpcWrapperError::GenericError("Asset not found".to_string()));
+        };
+        let transfer_asset_message =
+            self.transfer_asset_message(asset_id, to, amount, asset_data.decimals)?;
         let signed_claim = self.sign(transfer_asset_message)?;
         let response: String = self
             .rpc_client
@@ -322,14 +425,15 @@ where
         asset_id: &AssetId,
         to: &Address,
         amount: &Amount,
-    ) -> TransferAssetMessage {
-        TransferAssetMessage {
+        decimals: u8,
+    ) -> RpcWrapperResult<TransferAssetMessage> {
+        Ok(TransferAssetMessage {
             from: self.address().to_string(),
             nonce: self.nonce().to_string(),
             to: to.to_string(),
-            amount: format_amount(*amount),
+            amount: format_token_amount(*amount, decimals)?,
             asset_id: asset_id.to_string(),
-        }
+        })
     }
 
     /// Sets the account's current state.
@@ -390,6 +494,15 @@ where
     /// - Returns: a map of asset IDs to balances
     pub async fn get_asset_balances(&self) -> RpcWrapperResult<HashMap<AssetId, Amount>> {
         get_asset_balances(self.rpc_client(), self.address()).await
+    }
+
+    /// Retrieves creation metadata for a given asset by its ID.
+    ///
+    /// - Input: the asset ID to query.
+    /// - Returns: An [AssetData] containing information about the asset,
+    ///   or `None` if no asset with that id was created.
+    pub async fn get_asset_by_id(&self, asset_id: &AssetId) -> RpcWrapperResult<Option<AssetData>> {
+        get_asset_by_id(self.rpc_client(), asset_id).await
     }
 
     /// Returns the wrapped account's current state, or `None` if unset.
@@ -563,13 +676,16 @@ pub async fn get_asset_balance<T: ClientT>(
     account_id: &Address,
     asset_id: &AssetId,
 ) -> RpcWrapperResult<Amount> {
+    let Some(asset_data) = get_asset_by_id(rpc_client, asset_id).await? else {
+        return Err(RpcWrapperError::GenericError("Asset not found".to_string()));
+    };
     let response: String = rpc_client
         .request(
             "vsl_getAssetBalance",
             rpc_params![account_id.to_string(), asset_id.to_string()],
         )
         .await?;
-    parse_amount(&response)
+    parse_token_amount(&response, asset_data.decimals)
 }
 
 /// Retrieves the balances of all assets held by an account.
@@ -585,9 +701,31 @@ pub async fn get_asset_balances<T: ClientT>(
         .await?;
     let mut result = HashMap::with_capacity(response.len());
     for (asset_id, amount) in response {
-        result.insert(AssetId::from_str(&asset_id)?, parse_amount(&amount)?);
+        let asset_id = AssetId::from_str(&asset_id)?;
+        let Some(asset_data) = get_asset_by_id(rpc_client, &asset_id).await? else {
+            return Err(RpcWrapperError::GenericError("Asset not found".to_string()));
+        };
+        result.insert(asset_id, parse_token_amount(&amount, asset_data.decimals)?);
     }
     Ok(result)
+}
+
+/// Retrieves creation metadata for a given asset by its ID.
+///
+/// - Input: the asset ID to query.
+/// - Returns: An [AssetData] containing information about the asset,
+///   or `None` if no asset with that id was created.
+pub async fn get_asset_by_id<T: ClientT>(
+    rpc_client: &T,
+    asset_id: &AssetId,
+) -> RpcWrapperResult<Option<AssetData>> {
+    let response: Option<CreateAssetMessage> = rpc_client
+        .request("vsl_getAssetById", rpc_params![asset_id.to_string()])
+        .await?;
+    let Some(response) = response else {
+        return Ok(None);
+    };
+    Ok(Some(AssetData::try_from(response)?))
 }
 
 /// Returns the account's current state, or `None` if unset.
