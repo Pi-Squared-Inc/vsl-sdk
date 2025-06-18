@@ -13,12 +13,31 @@ necessary components the `vsl-explorer` frontend and backend.
 
 ### Set environment variables
 
-Copy the sample environment file:
+Create a `.env` file with master account (set `VSL_MASTER_ADDR` environment variable).
 
-```bash
-cp test.env 
+
+### Select whether you need persistent storage
+
+The [docker-compose.public.yml](./docker-compose.public.yml) file has two configuration options for data persistence. If you want to start from scratch and delete all existing VSL data, keep the default uncommented command. To reuse existing data volumes, replace it with the commented command below.
+
+```yml
+command: # Fresh start with master account
+      [
+        "--master-account",
+        '{"account": "$VSL_MASTER_ADDR", "initial_balance": "100000"}',
+        "--claim-db-path",
+        "/var/lib/vsl/vsl-db",
+        "--tokens-db-path",
+        "/var/lib/vsl/tokens.db",
+      ]
+    # command: # Use existing database
+    #   [
+    #     "--claim-db-path",
+    #     "/var/lib/vsl/vsl-db",
+    #     "--tokens-db-path",
+    #     "/var/lib/vsl/tokens.db",
+    #   ]
 ```
-And change variables if desired.
 
 ### Run the Service
 
