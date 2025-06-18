@@ -14,6 +14,7 @@ necessary components the `vsl-explorer` frontend and backend.
 ### Set environment variables
 
 Copy the sample environment file:
+
 ```bash
 cp test.env 
 ```
