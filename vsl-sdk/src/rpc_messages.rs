@@ -158,6 +158,8 @@ pub struct CreateAssetMessage {
     pub nonce: String,
     /// Ticker symbol to be used for the new asset
     pub ticker_symbol: String,
+    /// Number of decimals
+    pub decimals: u8,
     /// The amount to initialize the new asset with (u128 formatted as hex string)
     pub total_supply: String,
 }
