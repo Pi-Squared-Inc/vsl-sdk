@@ -326,6 +326,7 @@ Will fail if:
 
 - Signature invalid or signer address does not match the `account_id` field
 - `account_id` / `total_supply` / `nonce` not valid
+- `decimals` is larger than `18`
 - sender balance cannot cover validation fee
 
 **Parameters**:
@@ -510,7 +511,7 @@ An (unsigned) vls_submitClaim request for claim-verification
 
 - **expires** ([Timestamp](timestamp))
 
-- **fee** (string): the fee for verification. Each verifier will receive this fee upon submitting this claim. The fee is formatted as `<tokens>.<atto-tokens>` where - `<tokens>` is the integer part of the total_supply divided by 10^18 - `<atto-tokens>` (optional) is the fractional part of the total_supply divided by 10^18 - if present it must have __exactly__ 18 digits
+- **fee** (string): the fee for verification (u128 formatted as hex string).
 
 - **from** (string)
 
@@ -589,6 +590,8 @@ An (unsigned) vsl_createAsset request
 ### Fields:
 
 - **account_id** (string): The (Ethereum-style) address of the account creating the asset
+
+- **decimals** (integer): Number of decimals
 
 - **nonce** (string): The nonce (64 bit unsigned integer) of the account creating the asset
 

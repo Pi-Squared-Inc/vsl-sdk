@@ -17,13 +17,13 @@ use vsl_sdk::{
 /// verification claim request to the VSL service/validator where:
 ///
 /// - the `claim` field should contain the amount requested
-/// 
+///
 /// - the `to` list should contain the address of the faucet verifier
-/// 
+///
 /// - the `quorum` should be `1`
-/// 
+///
 /// - the `fee` a non zero amount (can be `1`)
-/// 
+///
 /// - if this is the first time that the client requests funds from the faucet,
 ///   then the client needs to submit a proof that it is 'whitelisted'.
 ///   We accept as proof the id of a settled claim proving that the client has
@@ -34,15 +34,15 @@ use vsl_sdk::{
 ///
 /// The faucet verifier listens to claim requests listing it as a verifier.
 /// For each such claim, it will ensure that:
-/// 
+///
 /// - enough time has passed since the last request for funds from the client
-/// 
+///
 /// - the amount requested does not exceed the allowed maximum per request
 ///
 /// If verification passes, the faucet verifier will
-/// 
+///
 /// - record the current timestamp for this client
-/// 
+///
 /// - settle the claim
 ///
 /// Note: if verification fails (for any reason) there will be no notification

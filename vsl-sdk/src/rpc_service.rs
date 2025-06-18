@@ -205,6 +205,7 @@ pub trait ClaimRpc {
     ///
     /// - Signature invalid or signer address does not match the `account_id` field
     /// - `account_id` / `total_supply` / `nonce` not valid
+    /// - `decimals` is larger than `18`
     /// - sender balance cannot cover validation fee
     #[method(name = "vsl_createAsset", param_kind = map)]
     async fn create_asset(&self, asset_data: Signed<CreateAssetMessage>) -> RpcResult<String>;
