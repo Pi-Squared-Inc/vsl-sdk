@@ -1,6 +1,6 @@
 # Expected interaction with VSL
 
-## Clients submits claim to be verified
+## The client submits the claim to be verified
 
 - using the [`vsl_submitClaim`](rpc.md#vsl-submitclaim) endpoint
   - Creates a [`SubmittedClaim`](SubmittedClaim.json) message
@@ -10,7 +10,7 @@
 
 Upon receiving a `vsl_submitClaim` request:
 
-- 1 token is transfered from the sender to the VSL validator as processing fee
+- 1 (atto-)token is transfered from the sender to the VSL validator as processing fee
 - the `fee` is transfered from the sender to the verifiers
 - the `SubmittedClaim` signed message is timestamped and deposited as-is in the VSL DB.
 - the message is also stored into several indices for faster retrieval:
@@ -22,7 +22,7 @@ Upon receiving a `vsl_submitClaim` request:
 - using the [`vsl_listSubmittedClaimsForReceiver`](rpc.md#vsl_listsubmittedclaimsforreceiver) endpoint
   - using their own address as the receiver
 
-## Verifiers verify a claim and make a request for settlment
+## Verifiers verify a claim and make a request for settlement
 
 - using the [`vsl_settleClaim`](rpc.md#vsl-settleclaim) endpoint
   - prepare a [`VerifiedClaim`](VerifiedClaim.json) message
@@ -32,13 +32,13 @@ Upon receiving a `vsl_submitClaim` request:
 
 Upon receiving a `vsl_settleClaim` request:
 
-- 1 token is transfered from the sender to the VSL validator as processing fee
-- the message is split in its signature and the contained `VerifiedClaim`
+- 1 (atto-)token is transfered from the sender to the VSL validator as processing fee
+- the message is split into its signature and the contained `VerifiedClaim`
 - VSL checks that:
   - there exist a submitted claim corresponding to this verified claim
   - that claim is not expired
   - that claim specifies the sender of the verified claim message as a verifier
-  - if any of the above fails, the request is denied with specific error
+  - if any of the above fails, the request is denied with a specific error
 - the validator creates a [`SettledVerifiedClaim`](SettledVerifiedClaim.json) containing
   - the `VerifiedClaim` object
   - a vector containing the string representation of the signature
@@ -49,4 +49,4 @@ Upon receiving a `vsl_settleClaim` request:
 
 - using the [`vsl_listSettledClaimsForReceiver`](rpc.md#vsl_listsettledclaimsforreceiver) endpoint
   - they can check that the message is signed by the validator
-  - they can also double check that the store signature corresponds to the intended verified.
+  - they can also double check that the stored signature corresponds to the intended verifier.
