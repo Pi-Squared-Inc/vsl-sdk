@@ -351,6 +351,7 @@ where
     /// Will fail if:
     ///
     /// - sender balance cannot cover validation fee
+    /// - `total` uses more decimals than allowed by `decimals`
     pub async fn create_asset(
         &mut self,
         ticker_symbol: &str,
@@ -399,7 +400,7 @@ where
     ///
     /// - sender balance cannot cover validation fee
     /// - sender asset balance cannot cover `amount`
-    /// - `amount` has more decimals than allowed by
+    /// - `amount` uses more decimals than allowed by the asset metadata
     pub async fn transfer_asset(
         &mut self,
         asset_id: &AssetId,
