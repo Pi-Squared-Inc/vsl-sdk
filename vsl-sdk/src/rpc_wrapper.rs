@@ -9,17 +9,17 @@ use alloy::signers::local::PrivateKeySigner;
 use jsonrpsee::core::client::{ClientT, Error as RpcError, Subscription, SubscriptionClientT};
 use jsonrpsee::rpc_params;
 use jsonrpsee::ws_client::WsClient;
-use linera_base::BcsHexParseError;
 
 use crate::helpers::IntoSigned;
 use crate::rpc_messages::{
     AccountStateHash, CreateAssetMessage, IdentifiableClaim as _, PayMessage, SetStateMessage,
     SettleClaimMessage, SettledVerifiedClaim, SubmittedClaim, Timestamped, TransferAssetMessage,
 };
-use crate::{Address, Amount, AssetId, B256, Timestamp};
+use crate::{Address, B256, Timestamp};
+use crate::{Amount, AssetId};
 
 pub fn format_amount(amount: Amount) -> String {
-    format!("{:#x}", u128::from(amount))
+    format!("{:#x}", amount)
 }
 
 pub fn format_token_amount(amount: Amount, decimals: u8) -> RpcWrapperResult<String> {
@@ -143,7 +143,7 @@ pub enum RpcWrapperError {
     FromHexError(FromHexError),
     SignError(SignError),
     AmountError(String),
-    AssetError(BcsHexParseError),
+    AssetError(bcs::Error),
     ParseError(String),
     NonExistentAsset,
 }
@@ -166,8 +166,8 @@ impl From<SignError> for RpcWrapperError {
     }
 }
 
-impl From<BcsHexParseError> for RpcWrapperError {
-    fn from(value: BcsHexParseError) -> Self {
+impl From<bcs::Error> for RpcWrapperError {
+    fn from(value: bcs::Error) -> Self {
         Self::AssetError(value)
     }
 }
