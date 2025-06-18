@@ -16,7 +16,6 @@ alloy = "0.15.10"
 alloy-rlp = "0.3.12"
 derive_more = "2.0.1"
 jsonrpsee = { version = "0.25.1", features = ["client", "server", "macros"] }
-linera-base = { git = "https://github.com/linera-io/linera-protocol", rev = "57b803201adb7071b3133948522684a980971836", default-features = false, features = ["test"] }
 schemars = { version = "0.8.22", features = ["preserve_order"] }
 serde = { version = "1.0.219", features = ["derive"] }
 serde_json = { version = "1.0.140" }

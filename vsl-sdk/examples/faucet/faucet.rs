@@ -7,7 +7,7 @@ use serde::Deserialize;
 use tokio::time::sleep;
 use vsl_sdk::{
     Address, Amount, IntoSigned, Timestamp,
-    rpc_wrapper::{self, RpcWrapper, RpcWrapperResult, format_amount, parse_amount},
+    rpc_wrapper::{self, RpcWrapper, RpcWrapperResult},
 };
 
 const LOOP_INTERVAL: u64 = 5; // seconds
@@ -108,7 +108,7 @@ pub async fn main() -> RpcWrapperResult<()> {
                 continue;
             };
             let amount = &settled_claim.verified_claim.claim;
-            let Ok(amount) = parse_amount(amount) else {
+            let Ok(amount) = Amount::from_hex_str(amount) else {
                 eprintln!("Cannot parse the requested amount: {}", amount);
                 continue;
             };
@@ -124,16 +124,13 @@ pub async fn main() -> RpcWrapperResult<()> {
             let Ok(response) = account.pay(&faucet_client, &amount).await else {
                 eprintln!(
                     "Error while transfering amount '{}' to client '{}'",
-                    format_amount(amount),
-                    faucet_client
+                    amount, faucet_client
                 );
                 continue;
             };
             eprintln!(
                 "Payed {} to {} (transaction id: {})",
-                format_amount(amount),
-                faucet_client,
-                response
+                amount, faucet_client, response
             );
             sleep(Duration::from_secs(LOOP_INTERVAL)).await;
         }
