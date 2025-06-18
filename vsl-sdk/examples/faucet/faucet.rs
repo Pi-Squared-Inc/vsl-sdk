@@ -119,6 +119,7 @@ pub async fn main() -> RpcWrapperResult<()> {
             }
             if amount > max_amount {
                 eprintln!("Requested amount exceeds max allowed amount");
+                continue;
             }
             let Ok(response) = account.pay(&faucet_client, &amount).await else {
                 eprintln!(

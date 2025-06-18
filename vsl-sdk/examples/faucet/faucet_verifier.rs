@@ -163,6 +163,7 @@ pub async fn main() -> RpcWrapperResult<()> {
                 };
                 if old_seconds + settings.min_waiting_time > Timestamp::now().seconds() {
                     eprintln!("Request came too early. ignoring");
+                    continue;
                 }
             }
             _ => {
