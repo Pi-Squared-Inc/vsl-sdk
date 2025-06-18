@@ -228,14 +228,16 @@ pub trait ClaimRpc {
         transfer_asset: Signed<TransferAssetMessage>,
     ) -> RpcResult<String>;
 
-    /// Retrieves metadata for a given asset by its ID.
-    ///
-    /// Currently not implemented
+    /// Retrieves creation metadata for a given asset by its ID.
     ///
     /// - Input: the asset ID to query.
-    /// - Returns: a JSON string describing the asset's metadata.
+    /// - Returns: The original [CreateAssetMessage] used for setting up this asset
+    ///   or `None` if no asset with that id was created.
+    ///
+    /// Will fail if:
+    /// - `asset_id` not valid
     #[method(name = "vsl_getAssetById", param_kind = map)]
-    async fn get_asset_by_id(&self, asset_id: String) -> RpcResult<String>;
+    async fn get_asset_by_id(&self, asset_id: String) -> RpcResult<Option<CreateAssetMessage>>;
 
     /// Returns the account's current state, or null if unset.
     /// The state is a 256-bit hash formatted as a hex string starting 0x

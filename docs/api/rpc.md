@@ -366,12 +366,14 @@ String
 
 ## `vsl_getAssetById`
 
-Retrieves metadata for a given asset by its ID.
-
-Currently not implemented
+Retrieves creation metadata for a given asset by its ID.
 
 - Input: the asset ID to query.
-- Returns: a JSON string describing the asset's metadata.
+- Returns: The original [CreateAssetMessage](#createassetmessage) used for setting up this asset
+  or `None` if no asset with that id was created.
+
+Will fail if:
+- `asset_id` not valid
 
 **Parameters**:
 
@@ -379,7 +381,7 @@ Currently not implemented
 
 **Returns**:
 
-String
+Option< [CreateAssetMessage](#createassetmessage) >
 
 ---
 

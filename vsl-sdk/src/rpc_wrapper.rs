@@ -258,9 +258,10 @@ where
     pub async fn create_asset(
         &mut self,
         ticker_symbol: &str,
+        decimals: u8,
         total_supply: &Amount,
     ) -> RpcWrapperResult<AssetId> {
-        let create_asset_message = self.create_asset_message(ticker_symbol, total_supply);
+        let create_asset_message = self.create_asset_message(ticker_symbol, decimals, total_supply);
         let signed_claim = self.sign(create_asset_message)?;
         let response: String = self
             .rpc_client
@@ -273,12 +274,14 @@ where
     pub fn create_asset_message(
         &mut self,
         ticker_symbol: &str,
+        decimals: u8,
         total_supply: &Amount,
     ) -> CreateAssetMessage {
         CreateAssetMessage {
             account_id: self.address().to_string(),
             nonce: self.nonce.to_string(),
             ticker_symbol: ticker_symbol.to_string(),
+            decimals,
             total_supply: format_amount(*total_supply),
         }
     }
