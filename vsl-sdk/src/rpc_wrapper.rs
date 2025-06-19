@@ -16,67 +16,8 @@ use crate::rpc_messages::{
     SetStateMessage, SettleClaimMessage, SettledClaimData, SettledVerifiedClaim, SubmittedClaim,
     SubmittedClaimData, Timestamped, TransferAssetMessage,
 };
-use crate::{Address, B256, Timestamp};
+use crate::{Address, ParseAmountError, Timestamp, B256};
 use crate::{Amount, AssetId};
-
-pub fn format_amount(amount: Amount) -> String {
-    format!("{:#x}", amount)
-}
-
-pub fn format_token_amount(amount: Amount, decimals: u8) -> RpcWrapperResult<String> {
-    assert!(decimals <= 18);
-    let mut atto_amount = u128::from(amount);
-    if decimals != 18 {
-        // Amount is using 18 decimals; scale to fit token amount decimals
-        let multiplier: u128 = 10_u128.checked_pow(18 - decimals as u32).unwrap();
-        let remainder = atto_amount % multiplier;
-        atto_amount /= multiplier;
-        if remainder != 0 {
-            return Err(RpcWrapperError::AmountError(
-                "Amount uses more decimals than allowed.".to_string(),
-            ));
-        }
-    }
-    Ok(format!("{:#x}", atto_amount))
-}
-
-pub fn parse_amount(s: &str) -> RpcWrapperResult<Amount> {
-    parse_token_amount(s, 18)
-}
-
-pub fn parse_token_amount(s: &str, decimals: u8) -> RpcWrapperResult<Amount> {
-    assert!(decimals <= 18);
-    if !s.starts_with("0x") {
-        return Err(RpcWrapperError::AmountError(
-            "Amount should start with 0x".to_string(),
-        ));
-    }
-    let s = &s[2..];
-    if s == "0" {
-        return Ok(Amount::ZERO);
-    }
-    if s.starts_with('0') {
-        return Err(RpcWrapperError::AmountError(
-            "Amount should not start with 0x0".to_string(),
-        ));
-    } else {
-        let mut attos =
-            u128::from_str_radix(s, 16).map_err(|e| RpcWrapperError::AmountError(e.to_string()))?;
-        if decimals != 18 {
-            // Amount is using 18 decimals; scale token amount to fit that
-            let multiplier = 10_u128.checked_pow(18 - decimals as u32).unwrap();
-            attos = match attos.checked_mul(multiplier) {
-                None => {
-                    return Err(RpcWrapperError::AmountError(
-                        "Speficied amount cannot be represented".to_string(),
-                    ));
-                }
-                Some(n) => n,
-            };
-        }
-        return Ok(Amount::from_attos(attos));
-    }
-}
 
 /// Metadata about an asset
 pub struct AssetData {
@@ -113,7 +54,7 @@ impl TryFrom<CreateAssetMessage> for AssetData {
                 "Cannot parse nonce".to_string(),
             ));
         };
-        let total_supply = parse_token_amount(&total_supply, decimals)?;
+        let total_supply = Amount::from_hex_str(&total_supply)?;
         Ok(Self {
             account_id,
             nonce,
@@ -133,7 +74,7 @@ impl TryInto<CreateAssetMessage> for AssetData {
             nonce: self.nonce.to_string(),
             ticker_symbol: self.ticker_symbol,
             decimals: self.decimals,
-            total_supply: format_token_amount(self.total_supply, self.decimals)?,
+            total_supply: self.total_supply.to_hex_str(),
         })
     }
 }
@@ -143,7 +84,7 @@ pub enum RpcWrapperError {
     RpcError(RpcError),
     FromHexError(FromHexError),
     SignError(SignError),
-    AmountError(String),
+    AmountError(ParseAmountError),
     AssetError(bcs::Error),
     ParseError(String),
     NonExistentAsset,
@@ -170,6 +111,12 @@ impl From<SignError> for RpcWrapperError {
 impl From<bcs::Error> for RpcWrapperError {
     fn from(value: bcs::Error) -> Self {
         Self::AssetError(value)
+    }
+}
+
+impl From<ParseAmountError> for RpcWrapperError {
+    fn from(value: ParseAmountError) -> Self {
+        Self::AmountError(value)
     }
 }
 
@@ -280,7 +227,7 @@ where
             quorum,
             from: self.address().to_string(),
             expires,
-            fee: format_amount(fee),
+            fee: fee.to_hex_str(),
         };
         let claim = self.sign(submitted_claim)?;
         let response: String = self
@@ -330,7 +277,7 @@ where
             from: self.address().to_string(),
             nonce: self.nonce().to_string(),
             to: to.to_string(),
-            amount: format_amount(*amount),
+            amount: amount.to_hex_str(),
         };
         let signed_claim = self.sign(pay_message)?;
         let response: String = self
@@ -411,11 +358,8 @@ where
         to: &Address,
         amount: &Amount,
     ) -> RpcWrapperResult<B256> {
-        let Some(asset_data) = self.get_asset_by_id(asset_id).await? else {
-            return Err(RpcWrapperError::NonExistentAsset);
-        };
         let transfer_asset_message =
-            self.transfer_asset_message(asset_id, to, amount, asset_data.decimals)?;
+            self.transfer_asset_message(asset_id, to, amount)?;
         let signed_claim = self.sign(transfer_asset_message)?;
         let response: String = self
             .rpc_client
@@ -430,13 +374,12 @@ where
         asset_id: &AssetId,
         to: &Address,
         amount: &Amount,
-        decimals: u8,
     ) -> RpcWrapperResult<TransferAssetMessage> {
         Ok(TransferAssetMessage {
             from: self.address().to_string(),
             nonce: self.nonce().to_string(),
             to: to.to_string(),
-            amount: format_token_amount(*amount, decimals)?,
+            amount: amount.to_hex_str(),
             asset_id: asset_id.to_string(),
         })
     }
@@ -823,7 +766,7 @@ pub async fn get_balance<T: ClientT>(
     let response: String = rpc_client
         .request("vsl_getBalance", rpc_params![address.to_string()])
         .await?;
-    parse_amount(&response)
+    Ok(Amount::from_hex_str(&response)?)
 }
 
 /// Retrieves the balance of a specific asset held by an account.
@@ -836,16 +779,13 @@ pub async fn get_asset_balance<T: ClientT>(
     account_id: &Address,
     asset_id: &AssetId,
 ) -> RpcWrapperResult<Amount> {
-    let Some(asset_data) = get_asset_by_id(rpc_client, asset_id).await? else {
-        return Err(RpcWrapperError::NonExistentAsset);
-    };
     let response: String = rpc_client
         .request(
             "vsl_getAssetBalance",
             rpc_params![account_id.to_string(), asset_id.to_string()],
         )
         .await?;
-    parse_token_amount(&response, asset_data.decimals)
+    Ok(Amount::from_hex_str(&response)?)
 }
 
 /// Retrieves the balances of all assets held by an account.
@@ -862,10 +802,7 @@ pub async fn get_asset_balances<T: ClientT>(
     let mut result = HashMap::with_capacity(response.len());
     for (asset_id, amount) in response {
         let asset_id = AssetId::from_str(&asset_id)?;
-        let Some(asset_data) = get_asset_by_id(rpc_client, &asset_id).await? else {
-            return Err(RpcWrapperError::NonExistentAsset);
-        };
-        result.insert(asset_id, parse_token_amount(&amount, asset_data.decimals)?);
+        result.insert(asset_id, Amount::from_hex_str(&amount)?);
     }
     Ok(result)
 }
