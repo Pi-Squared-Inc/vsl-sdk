@@ -18,7 +18,7 @@ Create a `.env` file with master account (set `VSL_MASTER_ADDR` environment vari
 
 ### Select whether you need persistent storage
 
-The [docker-compose.public.yml](./docker-compose.public.yml) file has two configuration options for data persistence. If you want to start from scratch and delete all existing VSL data, keep the default uncommented command. To reuse existing data volumes, replace it with the commented command below.
+The [docker-compose.public.yml](../docker-compose.public.yml) file has two configuration options for data persistence. If you want to start from scratch and delete all existing VSL data, keep the default uncommented command. To reuse existing data volumes, replace it with the commented command below.
 
 ```yml
 command: # Fresh start with master account
