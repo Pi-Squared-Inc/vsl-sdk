@@ -1,0 +1,59 @@
+services:
+  vsl-core:
+    image: ghcr.io/pi-squared-inc/vsl/vsl-core:vsl-devnet
+    network_mode: host
+    env_file:
+      - .env
+    command: # Fresh start with master account
+      [
+        "--master-account",
+        '{"account": "$VSL_MASTER_ADDR", "initial_balance": "100000"}',
+        "--claim-db-path",
+        "/var/lib/vsl/vsl-db",
+        "--tokens-db-path",
+        "/var/lib/vsl/tokens.db",
+      ]
+    # command: # Use existing database
+    #   [
+    #     "--claim-db-path",
+    #     "/var/lib/vsl/vsl-db",
+    #     "--tokens-db-path",
+    #     "/var/lib/vsl/tokens.db",
+    #   ]
+    healthcheck:
+      test:
+        - "CMD"
+        - "curl"
+        - "-X"
+        - "POST"
+        - "-H"
+        - "Content-Type: application/json"
+        - "-d"
+        - '{"jsonrpc":"2.0","id":"id","method":"vsl_getHealth"}'
+        - "http://localhost:44444"
+      interval: 1s
+      timeout: 5s
+      retries: 30
+    volumes:
+      - db-data:/var/lib/vsl
+
+  explorer-backend:
+    image: ghcr.io/pi-squared-inc/vsl/explorer-backend:vsl-devnet
+    network_mode: host
+    depends_on:
+      vsl-core:
+        condition: service_healthy
+    volumes:
+      - explorer-data:/var/lib/vsl/explorer
+
+  explorer-frontend:
+    image: ghcr.io/pi-squared-inc/vsl/explorer-frontend:vsl-devnet
+    ports:
+      - "4000:4000"
+    depends_on:
+      vsl-core:
+        condition: service_healthy
+
+volumes:
+  db-data:
+  explorer-data:

@@ -4,6 +4,7 @@
 
 Contained in the `docs` directory, the documentation provides:
 
+- An instruction to run VSL locally in [`docs/quick_start.md`](docs/quick_start.md)
 - A documentation for the VSL RPC server
   - Description of all endpoints in [`docs/api/rpc.md`](docs/api/rpc.md)
     - This is automatically generated from the rust api [`vsl-sdk/src/rpc_service.rs`](vsl-sdk/src/rpc_service.rs)
