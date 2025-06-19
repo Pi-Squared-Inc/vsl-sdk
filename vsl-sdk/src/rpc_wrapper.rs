@@ -12,8 +12,9 @@ use jsonrpsee::ws_client::WsClient;
 
 use crate::helpers::IntoSigned;
 use crate::rpc_messages::{
-    AccountStateHash, CreateAssetMessage, IdentifiableClaim as _, PayMessage, SetStateMessage,
-    SettleClaimMessage, SettledVerifiedClaim, SubmittedClaim, Timestamped, TransferAssetMessage,
+    AccountStateHash, CreateAssetMessage, CreateAssetResult, IdentifiableClaim as _, PayMessage,
+    SetStateMessage, SettleClaimMessage, SettledVerifiedClaim, SubmittedClaim, Timestamped,
+    TransferAssetMessage,
 };
 use crate::{Address, B256, Timestamp};
 use crate::{Amount, AssetId};
@@ -357,16 +358,19 @@ where
         ticker_symbol: &str,
         decimals: u8,
         total_supply: &Amount,
-    ) -> RpcWrapperResult<AssetId> {
+    ) -> RpcWrapperResult<(AssetId, B256)> {
         let create_asset_message =
             self.create_asset_message(ticker_symbol, decimals, total_supply)?;
         let signed_claim = self.sign(create_asset_message)?;
-        let response: String = self
+        let response: CreateAssetResult = self
             .rpc_client
             .request("vsl_createAsset", rpc_params![signed_claim])
             .await?;
         self.inc_nonce();
-        Ok(AssetId::from_str(&response)?)
+        Ok((
+            AssetId::from_str(&response.asset_id)?,
+            B256::from_str(&response.claim_id)?,
+        ))
     }
 
     pub fn create_asset_message(

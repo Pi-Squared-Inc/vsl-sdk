@@ -173,6 +173,17 @@ impl HasSender for CreateAssetMessage {
 impl_rlp_ecdsa_glue!(CreateAssetMessage);
 
 #[derive(
+    Debug, Clone, Serialize, Deserialize, JsonSchema, RlpDecodable, RlpEncodable, PartialEq, Eq,
+)]
+/// The return object of a `vsl_createAsset` request
+pub struct CreateAssetResult {
+    /// The ID (hex-encoded 256 bit hash) of the asset
+    pub asset_id: String,
+    /// Settled claim ID for the create asset command  (hex-encoded 256 bit hash)
+    pub claim_id: String,
+}
+
+#[derive(
     Debug, Clone, Serialize, Deserialize, JsonSchema, RlpEncodable, RlpDecodable, PartialEq, Eq,
 )]
 /// An (unsigned) vsl_transferAsset request
