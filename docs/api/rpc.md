@@ -320,7 +320,7 @@ Creates a new asset on the network.
 - A [SettledVerifiedClaim](#settledverifiedclaim) will be recorded containing the json-serialized [CreateAssetMessage](#createassetmessage) as its claim
 
 - Input: a signed [CreateAssetMessage](#createassetmessage) defining the asset properties.
-- Returns: the asset ID (hex-encoded 256 bit) of the newly created asset.
+- Returns: A [CreateAssetResult](#createassetresult) containing the asset ID of the newly created asset and the settled create asset claim ID
 
 Will fail if:
 
@@ -335,7 +335,7 @@ Will fail if:
 
 **Returns**:
 
-String
+[CreateAssetResult](#createassetresult)
 
 ---
 
@@ -598,6 +598,18 @@ An (unsigned) vsl_createAsset request
 - **ticker_symbol** (string): Ticker symbol to be used for the new asset
 
 - **total_supply** (string): The amount to initialize the new asset with (u128 formatted as hex string)
+
+## CreateAssetResult
+
+The return object of a `vsl_createAsset` request
+
+**JSON Schema**: [CreateAssetResult](CreateAssetResult.json)
+
+### Fields:
+
+- **asset_id** (string): The ID (hex-encoded 256 bit hash) of the asset
+
+- **claim_id** (string): Settled claim ID for the create asset command  (hex-encoded 256 bit hash)
 
 ## TransferAssetMessage
 
