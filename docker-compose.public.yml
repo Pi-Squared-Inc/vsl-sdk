@@ -44,7 +44,7 @@ services:
       vsl-core:
         condition: service_healthy
     volumes:
-      - db-data:/var/lib/vsl
+      - explorer-data:/var/lib/vsl/explorer
 
   explorer-frontend:
     image: ghcr.io/pi-squared-inc/vsl/explorer-frontend:vsl-devnet
@@ -56,3 +56,4 @@ services:
 
 volumes:
   db-data:
+  explorer-data:
