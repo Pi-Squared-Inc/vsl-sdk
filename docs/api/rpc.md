@@ -25,6 +25,8 @@
 - [`vsl_setAccountState`](#vsl_setaccountstate)
 - [`vsl_getAccountNonce`](#vsl_getaccountnonce)
 - [`vsl_getHealth`](#vsl_gethealth)
+- [`vsl_subscribeToSettledClaimsMetadata`](#vsl_subscribetosettledclaimsmetadata)
+- [`vsl_subscribeToSubmittedClaimsMetadata`](#vsl_subscribetosubmittedclaimsmetadata)
 - [`vsl_subscribeToSettledClaimsForReceiver`](#vsl_subscribetosettledclaimsforreceiver)
 - [`vsl_subscribeToSubmittedClaimsForReceiver`](#vsl_subscribetosubmittedclaimsforreceiver)
 
@@ -540,6 +542,30 @@ Checks if the server is up and ready.
 **Returns**:
 
 String
+
+---
+
+## `vsl_subscribeToSettledClaimsMetadata`
+
+[Subscription](https://geth.ethereum.org/docs/rpc/pubsub) to the settled claims metadata
+
+- yields: a stream of timestamped [SettledClaimData](#settledclaimdata)s
+
+**Returns**:
+
+SubscriptionResult
+
+---
+
+## `vsl_subscribeToSubmittedClaimsMetadata`
+
+[Subscription](https://geth.ethereum.org/docs/rpc/pubsub) to the claim verification requests metadata
+
+- yields: a stream of timestamped [SubmittedClaimData](#submittedclaimdata)s
+
+**Returns**:
+
+SubscriptionResult
 
 ---
 
