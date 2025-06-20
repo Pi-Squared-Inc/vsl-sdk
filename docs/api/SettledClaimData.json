@@ -1,0 +1,28 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SettledClaimData",
+  "description": "Metadata for a settled (verified) claim",
+  "type": "object",
+  "required": [
+    "claim_owner",
+    "claim_type",
+    "verifiers"
+  ],
+  "properties": {
+    "claim_type": {
+      "description": "the claim type",
+      "type": "string"
+    },
+    "claim_owner": {
+      "description": "the (Ethereum-style) address of the client which produced this claim",
+      "type": "string"
+    },
+    "verifiers": {
+      "description": "the (Ethereum-style) addresses of the verifiers which have verified the claim and are part of the quorum",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}
