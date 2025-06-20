@@ -8,7 +8,7 @@ use sled::{Db, IVec};
 use vsl_sdk::{
     Address, Amount, B256, HasSender, IntoSigned, Timestamp,
     rpc_messages::{IdentifiableClaim, PayMessage, SubmittedClaim},
-    rpc_wrapper::{self, RpcWrapper, RpcWrapperResult, parse_amount},
+    rpc_wrapper::{self, RpcWrapper, RpcWrapperResult},
 };
 
 /// Example Faucet verifier for the VSL devnet
@@ -84,7 +84,7 @@ pub async fn main() -> RpcWrapperResult<()> {
         .try_deserialize()
         .expect("Config error");
     let db: Db = sled::open(settings.db_path).expect("cannot open database");
-    let max_amount = Amount::from_tokens(settings.max_amount as u128);
+    let max_amount = Amount::from_vsl_tokens(settings.max_amount as u128);
 
     // Initialize an Http client for regular RPC communication
     let http_url = format!("http://{}", settings.vsl_server_addr);
@@ -145,7 +145,7 @@ pub async fn main() -> RpcWrapperResult<()> {
             eprintln!("Invalid client address");
             continue;
         };
-        let Ok(amount) = parse_amount(&request.claim) else {
+        let Ok(amount) = Amount::from_hex_str(&request.claim) else {
             eprintln!("Cannot parse the requested amount: {}", request.claim);
             continue;
         };

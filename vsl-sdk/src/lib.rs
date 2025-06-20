@@ -4,7 +4,7 @@ pub mod rpc_wrapper;
 mod helpers;
 mod timestamp;
 
-use std::{fmt::Display, ops::Mul};
+use std::{fmt::Display, num::ParseIntError, ops::Mul};
 
 pub use crate::helpers::{HasSender, IntoSigned};
 pub use alloy::primitives::{Address, B256, wrap_fixed_bytes};
@@ -35,15 +35,46 @@ pub use timestamp::Timestamp;
 )]
 pub struct Amount(u128);
 
-const ONE_TOKEN: u128 = 1_000_000_000_000_000_000;
+const ONE_VSL_TOKEN: u128 = 1_000_000_000_000_000_000;
+
+#[derive(Debug)]
+pub enum ParseAmountError {
+    NotHex,
+    LeadingZeros,
+    ParseInt(ParseIntError),
+    NotDecimal,
+    TooManyDecimals,
+}
+
+impl ToString for ParseAmountError {
+    fn to_string(&self) -> String {
+        match self {
+            ParseAmountError::NotHex => "Amount should start with 0x".to_string(),
+            ParseAmountError::LeadingZeros => "Amount should not start with 0x0".to_string(),
+            ParseAmountError::ParseInt(parse_int_error) => parse_int_error.to_string(),
+            ParseAmountError::NotDecimal => "Amount should be of the form <units>.<subunits>".to_string(),
+            ParseAmountError::TooManyDecimals => "amount had more decimals than supported".to_string(),
+        }
+    }
+}
+
 impl Amount {
     pub const ZERO: Amount = Amount(0);
-    pub fn from_attos(attos: u128) -> Self {
-        Amount(attos)
+    pub fn from_subunits(subunits: u128) -> Self {
+        Amount(subunits)
     }
-    pub fn from_tokens(tokens: u128) -> Self {
+
+    pub fn from_vsl_tokens(tokens: u128) -> Self {
         let converted = tokens
-            .checked_mul(ONE_TOKEN)
+            .checked_mul(ONE_VSL_TOKEN)
+            .expect("overflow converting into amount from token count");
+        Amount(converted)
+    }
+
+    pub fn from_tokens(tokens: u128, decimals: u8) -> Self {
+        let one_token = 10u128.checked_pow(decimals as u32).expect("overflow");
+        let converted = tokens
+            .checked_mul(one_token)
             .expect("overflow converting into amount from token count");
         Amount(converted)
     }
@@ -55,6 +86,7 @@ impl Amount {
             None
         }
     }
+
     pub const fn checked_add(self, rhs: Amount) -> Option<Amount> {
         if let Some(v) = self.0.checked_add(rhs.0) {
             Some(Amount(v))
@@ -62,7 +94,58 @@ impl Amount {
             None
         }
     }
+
+    pub fn to_hex_str(&self) -> String {
+        format!("{:#x}", self)
+    }
+
+    pub fn from_hex_str(s: &str) -> Result<Self, ParseAmountError> {
+        if !s.starts_with("0x") {
+            return Err(ParseAmountError::NotHex);
+        }
+        let s = &s[2..];
+        if s == "0" {
+            return Ok(Self::ZERO);
+        }
+        if s.starts_with('0') {
+            return Err(ParseAmountError::LeadingZeros);
+        } else {
+            let subunits =
+                u128::from_str_radix(s, 16).map_err(ParseAmountError::ParseInt)?;
+            return Ok(Self::from_subunits(subunits));
+        }
+    }
+
+    pub fn to_str_with_decimals(&self, decimals: u8) -> String {
+        let one_token = 10u128.checked_pow(decimals as u32).expect("overflow");
+        let units = self.0 / one_token;
+        let subunits = self.0 % one_token;
+        format!("{}.{:0>width$}", units, subunits, width = decimals as usize)
+    }
+
+    pub fn from_str_with_decimals(s: &str, decimals: u8) -> Result<Self, ParseAmountError> {
+        let mut iter = s.split(".");
+        let Some(units) = iter.next() else {
+            return Err(ParseAmountError::NotDecimal)
+        };
+        let subunits = iter.next().unwrap_or("0");
+        if iter.next().is_some() {
+            return  Err(ParseAmountError::NotDecimal);
+        }
+        let decimals = decimals as usize;
+        let subunits = match subunits.len().cmp(&decimals) {
+            std::cmp::Ordering::Equal => subunits.to_string(),
+            std::cmp::Ordering::Less => format!("{:0<width$}", subunits, width = decimals),
+            std::cmp::Ordering::Greater => {
+                return  Err(ParseAmountError::TooManyDecimals);
+            }
+        };
+        let restored = format!("{}{}", units, subunits);
+        let amount = u128::from_str_radix(&restored, 10).map_err(ParseAmountError::ParseInt)?;
+        Ok(Self(amount))
+    }
 }
+
 impl Mul for Amount {
     type Output = Self;
 
