@@ -12,6 +12,7 @@
 - [`vsl_listSubmittedClaimsForSender`](#vsl_listsubmittedclaimsforsender)
 - [`vsl_getClaimDataById`](#vsl_getclaimdatabyid)
 - [`vsl_getProofById`](#vsl_getproofbyid)
+- [`vsl_getSubmittedClaimById`](#vsl_getsubmittedclaimbyid)
 - [`vsl_getSettledClaimById`](#vsl_getsettledclaimbyid)
 - [`vsl_pay`](#vsl_pay)
 - [`vsl_getAccount`](#vsl_getaccount)
@@ -260,6 +261,27 @@ Will fail if:
 **Returns**:
 
 String
+
+---
+
+## `vsl_getSubmittedClaimById`
+
+Retrieves a submitted claim by its unique claim ID.
+
+- Input: a claim ID, which is the Keccak256 hash of the claim creator, creation nonce, and claim string.
+- Returns: the timestamped and signed [SubmittedClaim](#submittedclaim) claim corresponding to the given claim ID.
+
+Will fail if:
+
+- claim is not found among the submitted claims
+
+**Parameters**:
+
+- `claim_id`: String
+
+**Returns**:
+
+[Timestamped](#timestamped)< Signed< [SubmittedClaim](#submittedclaim) > >
 
 ---
 

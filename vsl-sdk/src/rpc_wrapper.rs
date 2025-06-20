@@ -481,6 +481,22 @@ where
         get_settled_claim_by_id(&self.rpc_client, claim_id).await
     }
 
+    /// Retrieves a submitted claim by its unique claim ID.
+    ///
+    /// - Input: a claim ID, which is the Keccak256 hash of the claim creator, creation nonce, and claim string.
+    /// - Returns: the timestamped and signed [SubmittedClaim] claim corresponding to the given claim ID.
+    ///
+    /// Will fail if:
+    ///
+    /// - claim is not found among the submitted claims
+    pub async fn get_submitted_claim_by_id(
+        &self,
+        // the Keccak256 hash of the claim creator, creation nonce, and claim string.
+        claim_id: &B256,
+    ) -> RpcWrapperResult<Timestamped<Signed<SubmittedClaim>>> {
+        get_submitted_claim_by_id(&self.rpc_client, claim_id).await
+    }
+
     /// Retrieves the claim data contained in the submitted claim with the given ID.
     ///
     /// - Input: a claim ID, which is the Keccak256 hash of the claim creator, creation nonce, and claim string.
@@ -649,6 +665,25 @@ pub async fn get_proof_by_id<T: ClientT>(
 ) -> RpcWrapperResult<String> {
     let response = rpc_client
         .request("vsl_getProofById", rpc_params![claim_id.to_string()])
+        .await?;
+    Ok(response)
+}
+
+/// Retrieves a submitted claim by its unique claim ID.
+///
+/// - Input: a claim ID, which is the Keccak256 hash of the claim creator, creation nonce, and claim string.
+/// - Returns: the timestamped and signed [SubmittedClaim] claim corresponding to the given claim ID.
+///
+/// Will fail if:
+///
+/// - claim is not found among the submitted claims
+pub async fn get_submitted_claim_by_id<T: ClientT>(
+    rpc_client: &T,
+    // the Keccak256 hash of the claim creator, creation nonce, and claim string.
+    claim_id: &B256,
+) -> RpcWrapperResult<Timestamped<Signed<SubmittedClaim>>> {
+    let response = rpc_client
+        .request("vsl_getSubmittedClaimById", rpc_params![claim_id.to_string()])
         .await?;
     Ok(response)
 }

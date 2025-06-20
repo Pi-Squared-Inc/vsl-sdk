@@ -160,6 +160,20 @@ pub trait ClaimRpc {
     #[method(name = "vsl_getProofById", param_kind = map)]
     async fn get_proof_by_id(&self, claim_id: String) -> RpcResult<String>;
 
+    /// Retrieves a submitted claim by its unique claim ID.
+    ///
+    /// - Input: a claim ID, which is the Keccak256 hash of the claim creator, creation nonce, and claim string.
+    /// - Returns: the timestamped and signed [SubmittedClaim] claim corresponding to the given claim ID.
+    ///
+    /// Will fail if:
+    ///
+    /// - claim is not found among the submitted claims
+    #[method(name = "vsl_getSubmittedClaimById", param_kind = map)]
+    async fn get_submitted_claim_by_id(
+        &self,
+        claim_id: String,
+    ) -> RpcResult<Timestamped<Signed<SubmittedClaim>>>;
+
     /// Retrieves a settled claim by its unique claim ID.
     ///
     /// - Input: a claim ID, which is the Keccak256 hash of the claim creator, creation nonce, and claim string.
