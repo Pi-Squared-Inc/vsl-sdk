@@ -4,8 +4,8 @@ use jsonrpsee::proc_macros::rpc;
 
 use crate::Timestamp;
 use crate::rpc_messages::{
-    CreateAssetMessage, PayMessage, SetStateMessage, SettleClaimMessage, SettledVerifiedClaim,
-    SubmittedClaim, Timestamped, TransferAssetMessage,
+    CreateAssetMessage, CreateAssetResult, PayMessage, SetStateMessage, SettleClaimMessage,
+    SettledVerifiedClaim, SubmittedClaim, Timestamped, TransferAssetMessage,
 };
 
 #[rpc(server, client)]
@@ -199,7 +199,7 @@ pub trait ClaimRpc {
     /// - A [SettledVerifiedClaim] will be recorded containing the json-serialized [CreateAssetMessage] as its claim
     ///
     /// - Input: a signed [CreateAssetMessage] defining the asset properties.
-    /// - Returns: the asset ID (hex-encoded 256 bit) of the newly created asset.
+    /// - Returns: A [CreateAssetResult] containing the asset ID of the newly created asset and the settled create asset claim ID
     ///
     /// Will fail if:
     ///
@@ -208,7 +208,10 @@ pub trait ClaimRpc {
     /// - `decimals` is larger than `18`
     /// - sender balance cannot cover validation fee
     #[method(name = "vsl_createAsset", param_kind = map)]
-    async fn create_asset(&self, asset_data: Signed<CreateAssetMessage>) -> RpcResult<String>;
+    async fn create_asset(
+        &self,
+        asset_data: Signed<CreateAssetMessage>,
+    ) -> RpcResult<CreateAssetResult>;
 
     /// Transfers a specific asset from one account to another.
     ///
