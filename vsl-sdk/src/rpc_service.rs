@@ -4,8 +4,7 @@ use jsonrpsee::proc_macros::rpc;
 
 use crate::Timestamp;
 use crate::rpc_messages::{
-    CreateAssetMessage, CreateAssetResult, PayMessage, SetStateMessage, SettleClaimMessage,
-    SettledVerifiedClaim, SubmittedClaim, Timestamped, TransferAssetMessage,
+    CreateAssetMessage, CreateAssetResult, PayMessage, SetStateMessage, SettleClaimMessage, SettledClaimData, SettledVerifiedClaim, SubmittedClaim, SubmittedClaimData, Timestamped, TransferAssetMessage
 };
 
 #[rpc(server, client)]
@@ -52,6 +51,28 @@ pub trait ClaimRpc {
     ///   - has already verified the claim
     #[method(name = "vsl_settleClaim", param_kind = map)]
     async fn settle_claim(&self, settled_claim: Signed<SettleClaimMessage>) -> RpcResult<String>;
+
+    /// Yields (recent) settled claims metadata
+    ///
+    /// - Input: a [Timestamp] (`since`)
+    /// - Returns: a list containing metadata for the most recent settled claims recorded since the given timestamp (limited at 64 entries).
+    #[method(name = "vsl_listSettledClaimsMetadata", param_kind = map)]
+    async fn list_settled_claims_metadata(
+        &self,
+        since: Timestamp,
+    ) -> RpcResult<Vec<Timestamped<SettledClaimData>>>;
+
+    /// Yields (recent) submitted claims metadata
+    ///
+    /// - Input: a [Timestamp] (`since`)
+    /// - Returns: a list containing metadata for the most recent submitted claims recorded since the given timestamp (limited at 64 entries).
+    #[method(name = "vsl_listSubmittedClaimsMetadata", param_kind = map)]
+    async fn list_submitted_claims_metadata(
+        &self,
+        since: Timestamp,
+    ) -> RpcResult<Vec<Timestamped<SubmittedClaimData>>>;
+
+
 
     /// Yields (recent) settled claims for a receiver.
     ///
@@ -116,6 +137,34 @@ pub trait ClaimRpc {
         address: Option<String>,
         since: Timestamp,
     ) -> RpcResult<Vec<Timestamped<Signed<SubmittedClaim>>>>;
+
+    /// Retrieves the claim data contained in the submitted claim with the given ID.
+    ///
+    /// - Input: a claim ID, which is the Keccak256 hash of the claim creator, creation nonce, and claim string.
+    /// - Returns: the contents of the `claim` field from the corresponding [SubmittedClaim].
+    ///
+    /// Will fail if:
+    ///
+    /// - no claim with given ID is not found among the submitted claims
+    #[method(name = "vsl_getClaimDataById", param_kind = map)]
+    async fn get_claim_data_by_id(
+        &self,
+        claim_id: String,
+    ) -> RpcResult<String>;
+
+    /// Retrieves the proof contained in the submitted claim with the given ID.
+    ///
+    /// - Input: a claim ID, which is the Keccak256 hash of the claim creator, creation nonce, and claim string.
+    /// - Returns: the contents of the `proof` field from the corresponding [SubmittedClaim].
+    ///
+    /// Will fail if:
+    ///
+    /// - no claim with given ID is not found among the submitted claims
+    #[method(name = "vsl_getProofById", param_kind = map)]
+    async fn get_proof_by_id(
+        &self,
+        claim_id: String,
+    ) -> RpcResult<String>;
 
     /// Retrieves a settled claim by its unique claim ID.
     ///
