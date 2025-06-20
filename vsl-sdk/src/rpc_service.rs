@@ -4,7 +4,9 @@ use jsonrpsee::proc_macros::rpc;
 
 use crate::Timestamp;
 use crate::rpc_messages::{
-    CreateAssetMessage, CreateAssetResult, PayMessage, SetStateMessage, SettleClaimMessage, SettledClaimData, SettledVerifiedClaim, SubmittedClaim, SubmittedClaimData, Timestamped, TransferAssetMessage
+    CreateAssetMessage, CreateAssetResult, PayMessage, SetStateMessage, SettleClaimMessage,
+    SettledClaimData, SettledVerifiedClaim, SubmittedClaim, SubmittedClaimData, Timestamped,
+    TransferAssetMessage,
 };
 
 #[rpc(server, client)]
@@ -71,8 +73,6 @@ pub trait ClaimRpc {
         &self,
         since: Timestamp,
     ) -> RpcResult<Vec<Timestamped<SubmittedClaimData>>>;
-
-
 
     /// Yields (recent) settled claims for a receiver.
     ///
@@ -147,10 +147,7 @@ pub trait ClaimRpc {
     ///
     /// - no claim with given ID is not found among the submitted claims
     #[method(name = "vsl_getClaimDataById", param_kind = map)]
-    async fn get_claim_data_by_id(
-        &self,
-        claim_id: String,
-    ) -> RpcResult<String>;
+    async fn get_claim_data_by_id(&self, claim_id: String) -> RpcResult<String>;
 
     /// Retrieves the proof contained in the submitted claim with the given ID.
     ///
@@ -161,10 +158,7 @@ pub trait ClaimRpc {
     ///
     /// - no claim with given ID is not found among the submitted claims
     #[method(name = "vsl_getProofById", param_kind = map)]
-    async fn get_proof_by_id(
-        &self,
-        claim_id: String,
-    ) -> RpcResult<String>;
+    async fn get_proof_by_id(&self, claim_id: String) -> RpcResult<String>;
 
     /// Retrieves a settled claim by its unique claim ID.
     ///
@@ -341,9 +335,7 @@ pub trait ClaimRpc {
         unsubscribe = "vsl_unsubscribeFromSettledClaimsMetadata",
         param_kind = map,
         item = Timestamped<SettledClaimData>)]
-    async fn subscribe_to_settled_claims_metadata(
-        &self,
-    ) -> SubscriptionResult;
+    async fn subscribe_to_settled_claims_metadata(&self) -> SubscriptionResult;
 
     /// [Subscription](https://geth.ethereum.org/docs/rpc/pubsub) to the claim verification requests metadata
     ///
@@ -353,9 +345,7 @@ pub trait ClaimRpc {
         unsubscribe = "vsl_unsubscribeFromSubmittedMetadata",
         param_kind = map,
         item = Timestamped<SubmittedClaimData>)]
-    async fn subscribe_to_submitted_claims_metadata(
-        &self,
-    ) -> SubscriptionResult;
+    async fn subscribe_to_submitted_claims_metadata(&self) -> SubscriptionResult;
 
     /// [Subscription](https://geth.ethereum.org/docs/rpc/pubsub) to the settled claims for a receiver
     ///
