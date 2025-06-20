@@ -4,10 +4,14 @@
 
 - [`vsl_submitClaim`](#vsl_submitclaim)
 - [`vsl_settleClaim`](#vsl_settleclaim)
+- [`vsl_listSettledClaimsMetadata`](#vsl_listsettledclaimsmetadata)
+- [`vsl_listSubmittedClaimsMetadata`](#vsl_listsubmittedclaimsmetadata)
 - [`vsl_listSettledClaimsForReceiver`](#vsl_listsettledclaimsforreceiver)
 - [`vsl_listSubmittedClaimsForReceiver`](#vsl_listsubmittedclaimsforreceiver)
 - [`vsl_listSettledClaimsForSender`](#vsl_listsettledclaimsforsender)
 - [`vsl_listSubmittedClaimsForSender`](#vsl_listsubmittedclaimsforsender)
+- [`vsl_getClaimDataById`](#vsl_getclaimdatabyid)
+- [`vsl_getProofById`](#vsl_getproofbyid)
 - [`vsl_getSettledClaimById`](#vsl_getsettledclaimbyid)
 - [`vsl_pay`](#vsl_pay)
 - [`vsl_getAccount`](#vsl_getaccount)
@@ -86,6 +90,40 @@ Will fail if:
 **Returns**:
 
 String
+
+---
+
+## `vsl_listSettledClaimsMetadata`
+
+Yields (recent) settled claims metadata
+
+- Input: a [Timestamp](#timestamp) (`since`)
+- Returns: a list containing metadata for the most recent settled claims recorded since the given timestamp (limited at 64 entries).
+
+**Parameters**:
+
+- `since`: [Timestamp](#timestamp)
+
+**Returns**:
+
+Vec< [Timestamped](#timestamped)< [SettledClaimData](#settledclaimdata) > >
+
+---
+
+## `vsl_listSubmittedClaimsMetadata`
+
+Yields (recent) submitted claims metadata
+
+- Input: a [Timestamp](#timestamp) (`since`)
+- Returns: a list containing metadata for the most recent submitted claims recorded since the given timestamp (limited at 64 entries).
+
+**Parameters**:
+
+- `since`: [Timestamp](#timestamp)
+
+**Returns**:
+
+Vec< [Timestamped](#timestamped)< [SubmittedClaimData](#submittedclaimdata) > >
 
 ---
 
@@ -178,6 +216,48 @@ Will fail if:
 **Returns**:
 
 Vec< [Timestamped](#timestamped)< Signed< [SubmittedClaim](#submittedclaim) > > >
+
+---
+
+## `vsl_getClaimDataById`
+
+Retrieves the claim data contained in the submitted claim with the given ID.
+
+- Input: a claim ID, which is the Keccak256 hash of the claim creator, creation nonce, and claim string.
+- Returns: the contents of the `claim` field from the corresponding [SubmittedClaim](#submittedclaim).
+
+Will fail if:
+
+- no claim with given ID is not found among the submitted claims
+
+**Parameters**:
+
+- `claim_id`: String
+
+**Returns**:
+
+String
+
+---
+
+## `vsl_getProofById`
+
+Retrieves the proof contained in the submitted claim with the given ID.
+
+- Input: a claim ID, which is the Keccak256 hash of the claim creator, creation nonce, and claim string.
+- Returns: the contents of the `proof` field from the corresponding [SubmittedClaim](#submittedclaim).
+
+Will fail if:
+
+- no claim with given ID is not found among the submitted claims
+
+**Parameters**:
+
+- `claim_id`: String
+
+**Returns**:
+
+String
 
 ---
 
@@ -523,6 +603,28 @@ An (unsigned) vls_submitClaim request for claim-verification
 
 - **to** (array< string >): the list of (Ethereum-style) addresses of accounts which can verify this claim
 
+## SubmittedClaimData
+
+Metadata for a settled (verified) claim
+
+**JSON Schema**: [SubmittedClaimData](SubmittedClaimData.json)
+
+### Fields:
+
+- **claim_type** (string): the claim type (could be any string)
+
+- **expires** ([Timestamp](timestamp))
+
+- **fee** (string): the fee for verification (u128 formatted as hex string).
+
+- **from** (string)
+
+- **nonce** (string): the client nonce (64 bit unsigned integer)
+
+- **quorum** (integer)
+
+- **to** (array< string >): the list of (Ethereum-style) addresses of accounts which can verify this claim
+
 ## VerifiedClaim
 
 Representation of a verified claim
@@ -562,6 +664,20 @@ A settled (verified) claim
 ### Fields:
 
 - **verified_claim** ([VerifiedClaim](verifiedclaim)): the claim which was verified
+
+- **verifiers** (array< string >): the (Ethereum-style) addresses of the verifiers which have verified the claim and are part of the quorum
+
+## SettledClaimData
+
+Metadata for a settled (verified) claim
+
+**JSON Schema**: [SettledClaimData](SettledClaimData.json)
+
+### Fields:
+
+- **claim_owner** (string): the (Ethereum-style) address of the client which produced this claim
+
+- **claim_type** (string): the claim type
 
 - **verifiers** (array< string >): the (Ethereum-style) addresses of the verifiers which have verified the claim and are part of the quorum
 
