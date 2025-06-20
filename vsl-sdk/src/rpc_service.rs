@@ -333,6 +333,30 @@ pub trait ClaimRpc {
     #[method(name = "vsl_getHealth", param_kind = map)]
     async fn get_health(&self) -> RpcResult<String>;
 
+    /// [Subscription](https://geth.ethereum.org/docs/rpc/pubsub) to the settled claims metadata
+    ///
+    /// - yields: a stream of timestamped [SettledClaimData]s
+    #[subscription(
+        name = "vsl_subscribeToSettledClaimsMetadata",
+        unsubscribe = "vsl_unsubscribeFromSettledClaimsMetadata",
+        param_kind = map,
+        item = Timestamped<SettledClaimData>)]
+    async fn subscribe_to_settled_claims_metadata(
+        &self,
+    ) -> SubscriptionResult;
+
+    /// [Subscription](https://geth.ethereum.org/docs/rpc/pubsub) to the claim verification requests metadata
+    ///
+    /// - yields: a stream of timestamped [SubmittedClaimData]s
+    #[subscription(
+        name = "vsl_subscribeToSubmittedClaimsMetadata",
+        unsubscribe = "vsl_unsubscribeFromSubmittedMetadata",
+        param_kind = map,
+        item = Timestamped<SubmittedClaimData>)]
+    async fn subscribe_to_submitted_claims_metadata(
+        &self,
+    ) -> SubscriptionResult;
+
     /// [Subscription](https://geth.ethereum.org/docs/rpc/pubsub) to the settled claims for a receiver
     ///
     /// - Input: the (Ethereum-style) address of the account for which settled claims are tracked (optional)

@@ -1,6 +1,7 @@
 use alloy::consensus::transaction::{RlpEcdsaDecodableTx, RlpEcdsaEncodableTx};
+use alloy::consensus::Signed;
 use alloy::eips::Typed2718;
-use alloy::primitives::{Address, B256, Keccak256, keccak256, wrap_fixed_bytes};
+use alloy::primitives::{keccak256, wrap_fixed_bytes, Address, Keccak256, B256};
 use alloy_rlp::{Decodable, Encodable, RlpDecodable, RlpEncodable};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -182,6 +183,19 @@ impl From<&SubmittedClaim> for SubmittedClaimData {
             expires: value.expires,
             fee: value.fee.clone(),
         }
+    }
+}
+
+impl<'a, T1, T2> From<&'a Timestamped<Signed<T1>>> for Timestamped<T2>
+where
+  T2 : From<&'a T1>,
+{
+    fn from(ts: &'a Timestamped<Signed<T1>>) -> Self {
+        Timestamped {
+            id: ts.id.clone(),
+            data: T2::from(ts.data.tx()),
+            timestamp: ts.timestamp,
+        }        
     }
 }
 
