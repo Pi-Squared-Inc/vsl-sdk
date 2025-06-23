@@ -1,0 +1,71 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SubmittedClaimData",
+  "description": "Metadata for a settled (verified) claim",
+  "type": "object",
+  "required": [
+    "claim_type",
+    "expires",
+    "fee",
+    "from",
+    "nonce",
+    "quorum",
+    "to"
+  ],
+  "properties": {
+    "claim_type": {
+      "description": "the claim type (could be any string)",
+      "type": "string"
+    },
+    "nonce": {
+      "description": "the client nonce (64 bit unsigned integer)",
+      "type": "string"
+    },
+    "to": {
+      "description": "the list of (Ethereum-style) addresses of accounts which can verify this claim",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "quorum": {
+      "type": "integer",
+      "format": "uint16",
+      "minimum": 0.0
+    },
+    "from": {
+      "type": "string"
+    },
+    "expires": {
+      "$ref": "#/definitions/Timestamp"
+    },
+    "fee": {
+      "description": "the fee for verification (u128 formatted as hex string).",
+      "type": "string"
+    }
+  },
+  "definitions": {
+    "Timestamp": {
+      "description": "Records the time elapsed from the [UNIX_EPOCH]",
+      "type": "object",
+      "required": [
+        "nanos",
+        "seconds"
+      ],
+      "properties": {
+        "seconds": {
+          "description": "Time elapsed from the [UNIX_EPOCH] (in seconds, truncated)",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        },
+        "nanos": {
+          "description": "the _remaining fraction_ of a second, expressed in nano-seconds",
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0.0
+        }
+      }
+    }
+  }
+}

@@ -1,3 +1,4 @@
+use alloy::consensus::Signed;
 use alloy::consensus::transaction::{RlpEcdsaDecodableTx, RlpEcdsaEncodableTx};
 use alloy::eips::Typed2718;
 use alloy::primitives::{Address, B256, Keccak256, keccak256, wrap_fixed_bytes};
@@ -106,6 +107,97 @@ pub struct VerifiedClaim {
 }
 
 impl HasSender for VerifiedClaim {}
+
+/// Metadata for a settled (verified) claim
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, RlpEncodable, RlpDecodable)]
+pub struct SettledClaimData {
+    /// the claim type
+    pub claim_type: String,
+    /// the (Ethereum-style) address of the client which produced this claim
+    pub claim_owner: String,
+    /// the (Ethereum-style) addresses of the verifiers which have verified the claim and are part of the quorum
+    pub verifiers: Vec<String>,
+}
+
+impl From<SettledVerifiedClaim> for SettledClaimData {
+    fn from(value: SettledVerifiedClaim) -> Self {
+        Self {
+            claim_type: value.verified_claim.claim_type,
+            claim_owner: value.verified_claim.claim_owner,
+            verifiers: value.verifiers,
+        }
+    }
+}
+
+impl From<&SettledVerifiedClaim> for SettledClaimData {
+    fn from(value: &SettledVerifiedClaim) -> Self {
+        Self {
+            claim_type: value.verified_claim.claim_type.clone(),
+            claim_owner: value.verified_claim.claim_owner.clone(),
+            verifiers: value.verifiers.clone(),
+        }
+    }
+}
+
+/// Metadata for a submitted claim
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, RlpEncodable, RlpDecodable)]
+pub struct SubmittedClaimData {
+    /// the claim type (could be any string)
+    pub claim_type: String,
+    /// the client nonce (64 bit unsigned integer)
+    pub nonce: String,
+    /// the list of (Ethereum-style) addresses of accounts which can verify this claim
+    pub to: Vec<String>,
+    //the minimum quorum of signatures
+    pub quorum: u16,
+    // the (Ethereum-style) address of the client account requesting verification
+    pub from: String,
+    // the time after which the claim is dropped if not enough verifications are received
+    pub expires: Timestamp,
+    /// the fee for verification (u128 formatted as hex string).
+    pub fee: String,
+}
+
+impl From<SubmittedClaim> for SubmittedClaimData {
+    fn from(value: SubmittedClaim) -> Self {
+        Self {
+            claim_type: value.claim_type,
+            nonce: value.nonce,
+            to: value.to,
+            quorum: value.quorum,
+            from: value.from,
+            expires: value.expires,
+            fee: value.fee,
+        }
+    }
+}
+
+impl From<&SubmittedClaim> for SubmittedClaimData {
+    fn from(value: &SubmittedClaim) -> Self {
+        Self {
+            claim_type: value.claim_type.clone(),
+            nonce: value.nonce.clone(),
+            to: value.to.clone(),
+            quorum: value.quorum,
+            from: value.from.clone(),
+            expires: value.expires,
+            fee: value.fee.clone(),
+        }
+    }
+}
+
+impl<'a, T1, T2> From<&'a Timestamped<Signed<T1>>> for Timestamped<T2>
+where
+    T2: From<&'a T1>,
+{
+    fn from(ts: &'a Timestamped<Signed<T1>>) -> Self {
+        Timestamped {
+            id: ts.id.clone(),
+            data: T2::from(ts.data.tx()),
+            timestamp: ts.timestamp,
+        }
+    }
+}
 
 /// A settled (verified) claim
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, RlpEncodable, RlpDecodable)]
