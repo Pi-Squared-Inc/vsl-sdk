@@ -23,8 +23,8 @@ The [docker-compose.public.yml](../docker-compose.public.yml) file has two confi
 ```yml
 command: # Fresh start with master account
       [
-        "--master-account",
-        '{"account": "$VSL_MASTER_ADDR", "initial_balance": "100000"}',
+        "--genesis-json",
+        '{"accounts": [{"id": "$VSL_MASTER_ADDR","balance": "100000000000000000000000"}],"tokens": []}',
         "--claim-db-path",
         "/var/lib/vsl/vsl-db",
         "--tokens-db-path",
