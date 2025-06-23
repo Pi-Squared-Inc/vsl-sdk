@@ -139,7 +139,7 @@ impl From<&SettledVerifiedClaim> for SettledClaimData {
     }
 }
 
-/// Metadata for a settled (verified) claim
+/// Metadata for a submitted claim
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, RlpEncodable, RlpDecodable)]
 pub struct SubmittedClaimData {
     /// the claim type (could be any string)
