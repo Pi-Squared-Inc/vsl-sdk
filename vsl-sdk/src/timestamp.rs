@@ -42,6 +42,10 @@ impl Timestamp {
         }
     }
 
+    pub fn from_parts(seconds: u64, nanos: u32) -> Self {
+        Timestamp { seconds, nanos }
+    }
+
     pub fn seconds(&self) -> u64 {
         self.seconds
     }
