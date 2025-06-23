@@ -131,13 +131,8 @@ pub async fn main() -> RpcWrapperResult<()> {
             eprintln!("Expected a single verifier");
             continue;
         }
-        // Check that the verifier address can be parsed
-        let Ok(verifier_addr) = Address::from_str(&request.to[0]) else {
-            eprintln!("Invalid verifier address");
-            continue;
-        };
         // Check that the verifier is our account
-        if &verifier_addr != account.address() {
+        if &request.to[0] != account.address() {
             eprintln!("mentioned verifier address different from faucet address");
             continue;
         }
@@ -205,13 +200,8 @@ pub async fn main() -> RpcWrapperResult<()> {
                     eprintln!("Expected proof payment was made from the master account");
                     continue;
                 }
-                // decode pay message receiver address
-                let Ok(receiver) = Address::from_str(&pay_message.to) else {
-                    eprintln!("Cannot decode proof pay message receiver address");
-                    continue;
-                };
                 // expect payment was made to the client
-                if receiver != client {
+                if pay_message.to != client {
                     eprintln!("Expected proof payment was made to the client");
                     continue;
                 }

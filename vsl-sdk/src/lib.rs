@@ -8,7 +8,9 @@ use std::{fmt::Display, ops::Mul};
 
 pub use crate::helpers::{HasSender, IntoSigned};
 pub use alloy::primitives::{Address, B256, wrap_fixed_bytes};
+use alloy_rlp::{RlpDecodable, RlpEncodable};
 use derive_more::derive;
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 pub use timestamp::Timestamp;
 
@@ -32,6 +34,9 @@ pub use timestamp::Timestamp;
     derive::UpperHex,
     Serialize,
     Deserialize,
+    RlpEncodable,
+    RlpDecodable,
+    JsonSchema,
 )]
 pub struct Amount(u128);
 

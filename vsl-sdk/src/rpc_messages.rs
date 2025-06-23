@@ -5,16 +5,15 @@ use alloy::primitives::{Address, B256, Keccak256, keccak256, wrap_fixed_bytes};
 use alloy_rlp::{Decodable, Encodable, RlpDecodable, RlpEncodable};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use std::str::FromStr as _;
 
 use crate::helpers::{HasSender, IntoSigned};
-use crate::{Timestamp, impl_rlp_ecdsa_glue};
+use crate::{Amount, AssetId, Timestamp, impl_rlp_ecdsa_glue};
 
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 /// Some data with an identifier and an associated timestamp
 pub struct Timestamped<T> {
     /// Usually a claim identifier (hex-encoded 256 bit hash)
-    pub id: String,
+    pub id: B256,
     /// The data being timestamped
     pub data: T,
     /// The Timestamp itself
@@ -22,7 +21,7 @@ pub struct Timestamped<T> {
 }
 
 impl<T> Timestamped<T> {
-    pub fn new(id: String, timestamp: Timestamp, data: T) -> Self {
+    pub fn new(id: B256, timestamp: Timestamp, data: T) -> Self {
         Self {
             id,
             data,
@@ -40,7 +39,7 @@ where
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, RlpEncodable, RlpDecodable)]
+#[derive(Debug, Clone, Serialize, Deserialize, RlpEncodable, RlpDecodable)]
 /// An (unsigned) vls_submitClaim request for claim-verification
 pub struct SubmittedClaim {
     /// the claim to be verified (VSL does not care about how its encoded)
@@ -50,73 +49,70 @@ pub struct SubmittedClaim {
     /// the proof of the claim (VSL does not care about how its encoded)
     pub proof: String,
     /// the client nonce (64 bit unsigned integer)
-    pub nonce: String,
+    pub nonce: u64,
     /// the list of (Ethereum-style) addresses of accounts which can verify this claim
-    pub to: Vec<String>,
+    pub to: Vec<Address>,
     //the minimum quorum of signatures
     pub quorum: u16,
     // the (Ethereum-style) address of the client account requesting verification
-    pub from: String,
+    pub from: Address,
     // the time after which the claim is dropped if not enough verifications are received
     pub expires: Timestamp,
     /// the fee for verification (u128 formatted as hex string).
-    pub fee: String,
+    pub fee: Amount,
 }
 
 impl HasSender for SubmittedClaim {
     fn sender(&self) -> Option<Address> {
-        Address::from_str(&self.from).ok()
+        Some(self.from)
     }
 }
 
 impl_rlp_ecdsa_glue!(SubmittedClaim);
 
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, RlpDecodable, RlpEncodable)]
+#[derive(Debug, Clone, Serialize, Deserialize, RlpDecodable, RlpEncodable)]
 /// An (unsigned) vls_settleClaim request made by a verifier having verified the claim
 pub struct SettleClaimMessage {
     /// The (Ethereum-style) address of the verifier requesting claim settlement
-    pub from: String,
+    pub from: Address,
     /// The nonce (64 bit unsigned integer) of the verifier requesting claim settlement
-    pub nonce: String,
+    pub nonce: u64,
     /// The id (hex-encoded 256 bit hash) of the claim for which claim settlement is requested
-    pub target_claim_id: String,
+    pub target_claim_id: B256,
 }
 
 impl HasSender for SettleClaimMessage {
     fn sender(&self) -> Option<Address> {
-        let Ok(addr) = self.from.parse() else {
-            return None;
-        };
-        Some(addr)
+        Some(self.from)
     }
 }
 
 impl_rlp_ecdsa_glue!(SettleClaimMessage);
 
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, RlpEncodable, RlpDecodable)]
+#[derive(Debug, Clone, Serialize, Deserialize, RlpEncodable, RlpDecodable)]
 /// Representation of a verified claim
 pub struct VerifiedClaim {
     /// the original claim which was verified and now settled
     pub claim: String,
     /// the id (hex-encoded 256 bit hash) of the claim (useful for retrieving the full data of the claim)
-    pub claim_id: String,
+    pub claim_id: B256,
     /// the claim type
     pub claim_type: String,
     /// the (Ethereum-style) address of the client which produced this claim
-    pub claim_owner: String,
+    pub claim_owner: Address,
 }
 
 impl HasSender for VerifiedClaim {}
 
 /// Metadata for a settled (verified) claim
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, RlpEncodable, RlpDecodable)]
+#[derive(Debug, Clone, Serialize, Deserialize, RlpEncodable, RlpDecodable)]
 pub struct SettledClaimData {
     /// the claim type
     pub claim_type: String,
     /// the (Ethereum-style) address of the client which produced this claim
-    pub claim_owner: String,
+    pub claim_owner: Address,
     /// the (Ethereum-style) addresses of the verifiers which have verified the claim and are part of the quorum
-    pub verifiers: Vec<String>,
+    pub verifiers: Vec<Address>,
 }
 
 impl From<SettledVerifiedClaim> for SettledClaimData {
@@ -140,22 +136,22 @@ impl From<&SettledVerifiedClaim> for SettledClaimData {
 }
 
 /// Metadata for a submitted claim
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, RlpEncodable, RlpDecodable)]
+#[derive(Debug, Clone, Serialize, Deserialize, RlpEncodable, RlpDecodable)]
 pub struct SubmittedClaimData {
     /// the claim type (could be any string)
     pub claim_type: String,
     /// the client nonce (64 bit unsigned integer)
-    pub nonce: String,
+    pub nonce: u64,
     /// the list of (Ethereum-style) addresses of accounts which can verify this claim
-    pub to: Vec<String>,
+    pub to: Vec<Address>,
     //the minimum quorum of signatures
     pub quorum: u16,
     // the (Ethereum-style) address of the client account requesting verification
-    pub from: String,
+    pub from: Address,
     // the time after which the claim is dropped if not enough verifications are received
     pub expires: Timestamp,
     /// the fee for verification (u128 formatted as hex string).
-    pub fee: String,
+    pub fee: Amount,
 }
 
 impl From<SubmittedClaim> for SubmittedClaimData {
@@ -200,12 +196,12 @@ where
 }
 
 /// A settled (verified) claim
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, RlpEncodable, RlpDecodable)]
+#[derive(Debug, Clone, Serialize, Deserialize, RlpEncodable, RlpDecodable)]
 pub struct SettledVerifiedClaim {
     /// the claim which was verified
     pub verified_claim: VerifiedClaim,
     /// the (Ethereum-style) addresses of the verifiers which have verified the claim and are part of the quorum
-    pub verifiers: Vec<String>,
+    pub verifiers: Vec<Address>,
 }
 
 impl HasSender for SettledVerifiedClaim {
@@ -216,49 +212,45 @@ impl HasSender for SettledVerifiedClaim {
 
 impl_rlp_ecdsa_glue!(SettledVerifiedClaim);
 
-#[derive(
-    Debug, Clone, Serialize, Deserialize, JsonSchema, RlpDecodable, RlpEncodable, PartialEq, Eq,
-)]
+#[derive(Debug, Clone, Serialize, Deserialize, RlpDecodable, RlpEncodable, PartialEq, Eq)]
 /// An (unsigned) vsl_pay request (in VSL tokens)
 pub struct PayMessage {
     /// The (Ethereum-style) address of the account requesting the transfer
-    pub from: String,
+    pub from: Address,
     /// The (Ethereum-style) address of the account receiving the payment
-    pub to: String,
+    pub to: Address,
     /// The amount to be transfered (u128 formatted as hex string)
-    pub amount: String,
+    pub amount: Amount,
     /// The nonce (64 bit unsigned integer) of the account creating the asset
-    pub nonce: String,
+    pub nonce: u64,
 }
 
 impl HasSender for PayMessage {
     fn sender(&self) -> Option<Address> {
-        Address::from_str(&self.from).ok()
+        Some(self.from)
     }
 }
 
 impl_rlp_ecdsa_glue!(PayMessage);
 
-#[derive(
-    Debug, Clone, Serialize, Deserialize, JsonSchema, RlpDecodable, RlpEncodable, PartialEq, Eq,
-)]
+#[derive(Debug, Clone, Serialize, Deserialize, RlpDecodable, RlpEncodable, PartialEq, Eq)]
 /// An (unsigned) vsl_createAsset request
 pub struct CreateAssetMessage {
     /// The (Ethereum-style) address of the account creating the asset
-    pub account_id: String,
+    pub account_id: Address,
     /// The nonce (64 bit unsigned integer) of the account creating the asset
-    pub nonce: String,
+    pub nonce: u64,
     /// Ticker symbol to be used for the new asset
     pub ticker_symbol: String,
     /// Number of decimals
     pub decimals: u8,
     /// The amount to initialize the new asset with (u128 formatted as hex string)
-    pub total_supply: String,
+    pub total_supply: Amount,
 }
 
 impl HasSender for CreateAssetMessage {
     fn sender(&self) -> Option<Address> {
-        Address::from_str(&self.account_id).ok()
+        Some(self.account_id)
     }
 }
 
@@ -275,47 +267,43 @@ pub struct CreateAssetResult {
     pub claim_id: String,
 }
 
-#[derive(
-    Debug, Clone, Serialize, Deserialize, JsonSchema, RlpEncodable, RlpDecodable, PartialEq, Eq,
-)]
+#[derive(Debug, Clone, Serialize, Deserialize, RlpEncodable, RlpDecodable, PartialEq, Eq)]
 /// An (unsigned) vsl_transferAsset request
 pub struct TransferAssetMessage {
     /// The (Ethereum-style) address of the account transfering the asset
-    pub from: String,
+    pub from: Address,
     /// The nonce (64 bit unsigned integer) of the account transfering the asset
-    pub nonce: String,
+    pub nonce: u64,
     /// The id (hex-encoded 256 bit hash) of the asset (returned when asset was created)
-    pub asset_id: String,
+    pub asset_id: AssetId,
     /// The (Ethereum-style) address of the account receiving the asset
-    pub to: String,
+    pub to: Address,
     /// The amount (of asset) to be transfered (u128 formatted as hex string)
-    pub amount: String,
+    pub amount: Amount,
 }
 
 impl HasSender for TransferAssetMessage {
     fn sender(&self) -> Option<Address> {
-        Address::from_str(&self.from).ok()
+        Some(self.from)
     }
 }
 
 impl_rlp_ecdsa_glue!(TransferAssetMessage);
 
-#[derive(
-    Debug, Clone, Serialize, Deserialize, JsonSchema, RlpEncodable, RlpDecodable, PartialEq, Eq,
-)]
+#[derive(Debug, Clone, Serialize, Deserialize, RlpEncodable, RlpDecodable, PartialEq, Eq)]
 /// An (unsigned) vsl_setState request
 pub struct SetStateMessage {
     /// The (Ethereum-style) address of the account requesting its state to be changed
-    pub from: String,
+    pub from: Address,
     /// The nonce (64 bit unsigned integer) of the account requesting its state to be changed
-    pub nonce: String,
+    pub nonce: u64,
     /// The new state (hex-encoded 256 bit hash)
-    pub state: String,
+    pub state: AccountStateHash,
 }
 
 impl HasSender for SetStateMessage {
     fn sender(&self) -> Option<Address> {
-        Address::from_str(&self.from).ok()
+        Some(self.from)
     }
 }
 
@@ -331,7 +319,7 @@ impl AccountStateHash {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum ValidatorVerifiedClaim {
     Payment(PayMessage),
     AssetCreation(CreateAssetMessage),
@@ -383,20 +371,16 @@ impl From<SetStateMessage> for ValidatorVerifiedClaim {
 
 pub trait IdentifiableClaim {
     fn claim_str(&self) -> &str;
-    fn claim_nonce_str(&self) -> &str;
-    fn claim_owner_str(&self) -> &str;
+    fn claim_nonce(&self) -> u64;
+    fn claim_owner(&self) -> &Address;
     fn claim_id(&self) -> B256 {
-        Self::claim_id_hash(
-            self.claim_owner_str(),
-            self.claim_nonce_str(),
-            self.claim_str(),
-        )
+        Self::claim_id_hash(self.claim_owner(), self.claim_nonce(), self.claim_str())
     }
 
-    fn claim_id_hash(owner: &str, nonce: &str, claim: &str) -> B256 {
+    fn claim_id_hash(owner: &Address, nonce: u64, claim: &str) -> B256 {
         let mut hasher = Keccak256::new();
         hasher.update(owner);
-        hasher.update(nonce);
+        hasher.update(nonce.to_be_bytes());
         hasher.update(claim);
         hasher.finalize()
     }
@@ -407,11 +391,11 @@ impl IdentifiableClaim for SubmittedClaim {
         &self.claim
     }
 
-    fn claim_nonce_str(&self) -> &str {
-        &self.nonce
+    fn claim_nonce(&self) -> u64 {
+        self.nonce
     }
 
-    fn claim_owner_str(&self) -> &str {
+    fn claim_owner(&self) -> &Address {
         &self.from
     }
 }
@@ -421,16 +405,16 @@ impl IdentifiableClaim for VerifiedClaim {
         &self.claim
     }
 
-    fn claim_nonce_str(&self) -> &str {
+    fn claim_nonce(&self) -> u64 {
         unimplemented!()
     }
 
-    fn claim_owner_str(&self) -> &str {
+    fn claim_owner(&self) -> &Address {
         &self.claim_owner
     }
 
     fn claim_id(&self) -> B256 {
-        B256::from_str(&self.claim_id.clone()).unwrap()
+        self.claim_id
     }
 }
 
@@ -439,18 +423,18 @@ impl IdentifiableClaim for PayMessage {
         todo!()
     }
 
-    fn claim_nonce_str(&self) -> &str {
-        &self.nonce
+    fn claim_nonce(&self) -> u64 {
+        self.nonce
     }
 
-    fn claim_owner_str(&self) -> &str {
+    fn claim_owner(&self) -> &Address {
         &self.from
     }
 
     fn claim_id(&self) -> B256 {
         Self::claim_id_hash(
-            self.claim_owner_str(),
-            self.claim_nonce_str(),
+            self.claim_owner(),
+            self.claim_nonce(),
             &serde_json::to_string(&ValidatorVerifiedClaim::from(self)).unwrap(),
         )
     }
@@ -461,18 +445,18 @@ impl IdentifiableClaim for CreateAssetMessage {
         todo!()
     }
 
-    fn claim_nonce_str(&self) -> &str {
-        &self.nonce
+    fn claim_nonce(&self) -> u64 {
+        self.nonce
     }
 
-    fn claim_owner_str(&self) -> &str {
+    fn claim_owner(&self) -> &Address {
         &self.account_id
     }
 
     fn claim_id(&self) -> B256 {
         Self::claim_id_hash(
-            self.claim_owner_str(),
-            self.claim_nonce_str(),
+            self.claim_owner(),
+            self.claim_nonce(),
             &serde_json::to_string(&ValidatorVerifiedClaim::from(self)).unwrap(),
         )
     }
@@ -483,18 +467,18 @@ impl IdentifiableClaim for TransferAssetMessage {
         todo!()
     }
 
-    fn claim_nonce_str(&self) -> &str {
-        &self.nonce
+    fn claim_nonce(&self) -> u64 {
+        self.nonce
     }
 
-    fn claim_owner_str(&self) -> &str {
+    fn claim_owner(&self) -> &Address {
         &self.from
     }
 
     fn claim_id(&self) -> B256 {
         Self::claim_id_hash(
-            self.claim_owner_str(),
-            self.claim_nonce_str(),
+            self.claim_owner(),
+            self.claim_nonce(),
             &serde_json::to_string(&ValidatorVerifiedClaim::from(self)).unwrap(),
         )
     }

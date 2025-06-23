@@ -78,66 +78,6 @@ pub fn parse_token_amount(s: &str, decimals: u8) -> RpcWrapperResult<Amount> {
     }
 }
 
-/// Metadata about an asset
-pub struct AssetData {
-    /// The address of the account creating the asset
-    pub account_id: Address,
-    /// The nonce of the account creating the asset
-    pub nonce: u64,
-    /// Ticker symbol to be used for the new asset
-    pub ticker_symbol: String,
-    /// Number of decimals
-    pub decimals: u8,
-    /// The amount used to initialize the asset
-    pub total_supply: Amount,
-}
-
-impl TryFrom<CreateAssetMessage> for AssetData {
-    type Error = RpcWrapperError;
-
-    fn try_from(create_asset_message: CreateAssetMessage) -> Result<Self, Self::Error> {
-        let CreateAssetMessage {
-            account_id,
-            nonce,
-            ticker_symbol,
-            decimals,
-            total_supply,
-        } = create_asset_message;
-        let Ok(account_id) = Address::from_str(&account_id) else {
-            return Err(RpcWrapperError::ParseError(
-                "Cannot parse Address".to_string(),
-            ));
-        };
-        let Ok(nonce) = u64::from_str_radix(&nonce, 10) else {
-            return Err(RpcWrapperError::ParseError(
-                "Cannot parse nonce".to_string(),
-            ));
-        };
-        let total_supply = parse_token_amount(&total_supply, decimals)?;
-        Ok(Self {
-            account_id,
-            nonce,
-            ticker_symbol,
-            decimals,
-            total_supply,
-        })
-    }
-}
-
-impl TryInto<CreateAssetMessage> for AssetData {
-    type Error = RpcWrapperError;
-
-    fn try_into(self) -> Result<CreateAssetMessage, Self::Error> {
-        Ok(CreateAssetMessage {
-            account_id: self.account_id.to_string(),
-            nonce: self.nonce.to_string(),
-            ticker_symbol: self.ticker_symbol,
-            decimals: self.decimals,
-            total_supply: format_token_amount(self.total_supply, self.decimals)?,
-        })
-    }
-}
-
 #[derive(Debug)]
 pub enum RpcWrapperError {
     RpcError(RpcError),
@@ -251,7 +191,7 @@ where
     }
 
     pub fn claim_id(&self, claim: &str) -> B256 {
-        SubmittedClaim::claim_id_hash(&self.address.to_string(), &self.nonce.to_string(), claim)
+        SubmittedClaim::claim_id_hash(&self.address, self.nonce, claim)
     }
 
     pub async fn submit_claim(
@@ -275,12 +215,12 @@ where
             claim,
             claim_type,
             proof,
-            nonce: self.nonce().to_string(),
-            to: to.iter().map(ToString::to_string).collect(),
+            nonce: self.nonce(),
+            to: to.into_iter().map(|a| a.clone()).collect(),
             quorum,
-            from: self.address().to_string(),
+            from: self.address,
             expires,
-            fee: format_amount(fee),
+            fee: fee,
         };
         let claim = self.sign(submitted_claim)?;
         let response: String = self
@@ -297,9 +237,9 @@ where
         claim_id: &B256,
     ) -> RpcWrapperResult<()> {
         let settle_claim_message = SettleClaimMessage {
-            from: self.address.to_string(),
-            nonce: self.nonce().to_string(),
-            target_claim_id: claim_id.to_string(),
+            from: self.address,
+            nonce: self.nonce,
+            target_claim_id: claim_id.clone(),
         };
         let claim = self.sign(settle_claim_message)?;
         let _: String = self
@@ -327,10 +267,10 @@ where
     /// - sender balance cannot cover the specified `amount` and the validation fee
     pub async fn pay(&mut self, to: &Address, amount: &Amount) -> RpcWrapperResult<B256> {
         let pay_message = PayMessage {
-            from: self.address().to_string(),
-            nonce: self.nonce().to_string(),
-            to: to.to_string(),
-            amount: format_amount(*amount),
+            from: self.address,
+            nonce: self.nonce,
+            to: *to,
+            amount: *amount,
         };
         let signed_claim = self.sign(pay_message)?;
         let response: String = self
@@ -379,14 +319,13 @@ where
         decimals: u8,
         total_supply: &Amount,
     ) -> RpcWrapperResult<CreateAssetMessage> {
-        AssetData {
+        Ok(CreateAssetMessage {
             account_id: self.address,
             nonce: self.nonce,
             ticker_symbol: ticker_symbol.to_string(),
             decimals,
             total_supply: *total_supply,
-        }
-        .try_into()
+        })
     }
 
     /// Transfers a specific asset from one account to another.
@@ -411,11 +350,7 @@ where
         to: &Address,
         amount: &Amount,
     ) -> RpcWrapperResult<B256> {
-        let Some(asset_data) = self.get_asset_by_id(asset_id).await? else {
-            return Err(RpcWrapperError::NonExistentAsset);
-        };
-        let transfer_asset_message =
-            self.transfer_asset_message(asset_id, to, amount, asset_data.decimals)?;
+        let transfer_asset_message = self.transfer_asset_message(asset_id, to, amount)?;
         let signed_claim = self.sign(transfer_asset_message)?;
         let response: String = self
             .rpc_client
@@ -430,14 +365,13 @@ where
         asset_id: &AssetId,
         to: &Address,
         amount: &Amount,
-        decimals: u8,
     ) -> RpcWrapperResult<TransferAssetMessage> {
         Ok(TransferAssetMessage {
-            from: self.address().to_string(),
-            nonce: self.nonce().to_string(),
-            to: to.to_string(),
-            amount: format_token_amount(*amount, decimals)?,
-            asset_id: asset_id.to_string(),
+            from: self.address,
+            nonce: self.nonce,
+            to: *to,
+            amount: *amount,
+            asset_id: *asset_id,
         })
     }
 
@@ -452,9 +386,9 @@ where
     /// - sender balance cannot cover validation fee    
     pub async fn set_account_state(&mut self, state: &AccountStateHash) -> RpcWrapperResult<B256> {
         let set_state_message = SetStateMessage {
-            from: self.address().to_string(),
-            nonce: self.nonce().to_string(),
-            state: state.to_string(),
+            from: self.address,
+            nonce: self.nonce,
+            state: *state,
         };
         let signed_claim = self.sign(set_state_message)?;
         let response: String = self
@@ -552,9 +486,12 @@ where
     /// Retrieves creation metadata for a given asset by its ID.
     ///
     /// - Input: the asset ID to query.
-    /// - Returns: An [AssetData] containing information about the asset,
+    /// - Returns: An [CreateAssetMessage] containing information about the asset,
     ///   or `None` if no asset with that id was created.
-    pub async fn get_asset_by_id(&self, asset_id: &AssetId) -> RpcWrapperResult<Option<AssetData>> {
+    pub async fn get_asset_by_id(
+        &self,
+        asset_id: &AssetId,
+    ) -> RpcWrapperResult<Option<CreateAssetMessage>> {
         get_asset_by_id(self.rpc_client(), asset_id).await
     }
 
@@ -683,7 +620,10 @@ pub async fn get_submitted_claim_by_id<T: ClientT>(
     claim_id: &B256,
 ) -> RpcWrapperResult<Timestamped<Signed<SubmittedClaim>>> {
     let response = rpc_client
-        .request("vsl_getSubmittedClaimById", rpc_params![claim_id.to_string()])
+        .request(
+            "vsl_getSubmittedClaimById",
+            rpc_params![claim_id.to_string()],
+        )
         .await?;
     Ok(response)
 }
@@ -873,19 +813,16 @@ pub async fn get_asset_balances<T: ClientT>(
 /// Retrieves creation metadata for a given asset by its ID.
 ///
 /// - Input: the asset ID to query.
-/// - Returns: An [AssetData] containing information about the asset,
+/// - Returns: An [CreateAssetMessage] containing information about the asset,
 ///   or `None` if no asset with that id was created.
 pub async fn get_asset_by_id<T: ClientT>(
     rpc_client: &T,
     asset_id: &AssetId,
-) -> RpcWrapperResult<Option<AssetData>> {
+) -> RpcWrapperResult<Option<CreateAssetMessage>> {
     let response: Option<CreateAssetMessage> = rpc_client
         .request("vsl_getAssetById", rpc_params![asset_id.to_string()])
         .await?;
-    let Some(response) = response else {
-        return Ok(None);
-    };
-    Ok(Some(AssetData::try_from(response)?))
+    Ok(response)
 }
 
 /// Returns the account's current state, or `None` if unset.
