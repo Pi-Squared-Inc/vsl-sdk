@@ -49,11 +49,11 @@ pub enum ParseAmountError {
 impl ToString for ParseAmountError {
     fn to_string(&self) -> String {
         match self {
-            ParseAmountError::NotHex => "Amount should start with 0x".to_string(),
-            ParseAmountError::LeadingZeros => "Amount should not start with 0x0".to_string(),
+            ParseAmountError::NotHex => "hex Amount should start with 0x".to_string(),
+            ParseAmountError::LeadingZeros => "non-zero hex Amount should not start with 0x0".to_string(),
             ParseAmountError::ParseInt(parse_int_error) => parse_int_error.to_string(),
-            ParseAmountError::NotDecimal => "Amount should be of the form <units>.<subunits>".to_string(),
-            ParseAmountError::TooManyDecimals => "amount had more decimals than supported".to_string(),
+            ParseAmountError::NotDecimal => "decimal Amount should be of the form <units>.<subunits>".to_string(),
+            ParseAmountError::TooManyDecimals => "decimal Amount had more decimals than supported".to_string(),
         }
     }
 }
@@ -116,10 +116,17 @@ impl Amount {
         }
     }
 
-    pub fn to_str_with_decimals(&self, decimals: u8) -> String {
+    pub fn to_str_with_decimals(&self, mut decimals: u8) -> String {
         let one_token = 10u128.checked_pow(decimals as u32).expect("overflow");
         let units = self.0 / one_token;
-        let subunits = self.0 % one_token;
+        let mut subunits = self.0 % one_token;
+        if subunits == 0 {
+            return units.to_string();
+        }
+        while subunits % 10 == 0 {
+            subunits /= 10;
+            decimals -= 1;
+        }
         format!("{}.{:0>width$}", units, subunits, width = decimals as usize)
     }
 
@@ -133,14 +140,10 @@ impl Amount {
             return  Err(ParseAmountError::NotDecimal);
         }
         let decimals = decimals as usize;
-        let subunits = match subunits.len().cmp(&decimals) {
-            std::cmp::Ordering::Equal => subunits.to_string(),
-            std::cmp::Ordering::Less => format!("{:0<width$}", subunits, width = decimals),
-            std::cmp::Ordering::Greater => {
+        if subunits.len() > decimals {
                 return  Err(ParseAmountError::TooManyDecimals);
-            }
-        };
-        let restored = format!("{}{}", units, subunits);
+        }
+        let restored = format!("{}{:0<width$}", units, subunits, width = decimals);
         let amount = u128::from_str_radix(&restored, 10).map_err(ParseAmountError::ParseInt)?;
         Ok(Self(amount))
     }
@@ -179,7 +182,7 @@ pub mod rpc_service;
 mod tests {
     use std::str::FromStr;
 
-    use crate::AssetId;
+    use crate::{Amount, AssetId, ParseAmountError};
 
     #[test]
     fn test_asset_printing() {
@@ -200,5 +203,28 @@ mod tests {
             .expect_err("too short should be rejected");
         AssetId::from_str("fefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefe")
             .expect_err("too long should be rejected");
+    }
+
+    #[test]
+    fn test_amount_parsing_decimal() {
+        assert_eq!(Amount::from_str_with_decimals("100", 2).unwrap(), Amount::from_tokens(100, 2));
+        assert_eq!(Amount::from_str_with_decimals("100.1", 2).unwrap(), Amount::from_subunits(10010));
+        assert_eq!(Amount::from_str_with_decimals("100.12", 2).unwrap(), Amount::from_subunits(10012));
+        assert_eq!(Amount::from_str_with_decimals("100.02", 2).unwrap(), Amount::from_subunits(10002));
+        let ParseAmountError::TooManyDecimals = Amount::from_str_with_decimals("100.122", 2).unwrap_err() else {
+            panic!("Expected too many decimals error");
+        };
+    }
+
+    #[test]
+    fn test_amount_formatting_decimal() {
+        assert_eq!(Amount::from_subunits(123456).to_str_with_decimals(3), "123.456");
+        assert_eq!(Amount::from_subunits(123450).to_str_with_decimals(3), "123.45");
+        assert_eq!(Amount::from_subunits(123400).to_str_with_decimals(3), "123.4");
+        assert_eq!(Amount::from_subunits(123000).to_str_with_decimals(3), "123");
+        assert_eq!(Amount::from_subunits(123045).to_str_with_decimals(3), "123.045");
+        assert_eq!(Amount::from_subunits(123040).to_str_with_decimals(3), "123.04");
+        assert_eq!(Amount::from_subunits(123004).to_str_with_decimals(3), "123.004");
+
     }
 }
