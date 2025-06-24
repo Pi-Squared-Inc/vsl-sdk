@@ -57,7 +57,7 @@ pub trait ClaimRpc {
     /// Yields (recent) settled claims metadata
     ///
     /// - Input: a [Timestamp] (`since`)
-    /// - Returns: a list containing metadata for the most recent settled claims recorded since the given timestamp (limited at 64 entries).
+    /// - Returns: a list containing metadata for the settled claims recorded since the given timestamp (limited at 64 entries).
     #[method(name = "vsl_listSettledClaimsMetadata", param_kind = map)]
     async fn list_settled_claims_metadata(
         &self,
@@ -67,7 +67,7 @@ pub trait ClaimRpc {
     /// Yields (recent) submitted claims metadata
     ///
     /// - Input: a [Timestamp] (`since`)
-    /// - Returns: a list containing metadata for the most recent submitted claims recorded since the given timestamp (limited at 64 entries).
+    /// - Returns: a list containing metadata for the submitted claims recorded since the given timestamp (limited at 64 entries).
     #[method(name = "vsl_listSubmittedClaimsMetadata", param_kind = map)]
     async fn list_submitted_claims_metadata(
         &self,
@@ -78,7 +78,7 @@ pub trait ClaimRpc {
     ///
     /// - Input: the (Ethereum-style) address for which settled claims are tracked (optional).
     /// - Input: a [Timestamp] (`since`)
-    /// - Returns: the list of most recent timestamped and signed [SettledVerifiedClaim]s recorded since the given timestamp (limited at 64 entries).
+    /// - Returns: the list of timestamped and signed [SettledVerifiedClaim]s recorded since the given timestamp (limited at 64 entries).
     ///
     /// Will fail if:
     ///
@@ -94,7 +94,7 @@ pub trait ClaimRpc {
     ///
     /// - Input: the (Ethereum-style) address for which claims requests are tracked.
     /// - Input: a [Timestamp] (`since`)
-    /// - Returns: the list of most recent timestamped and signed [SubmittedClaim]s recorded since the given timestamp (limited at 64 entries).
+    /// - Returns: the list of timestamped and signed [SubmittedClaim]s recorded since the given timestamp (limited at 64 entries).
     ///
     /// Will fail if:
     ///
@@ -110,7 +110,7 @@ pub trait ClaimRpc {
     ///
     /// - Input: the (Ethereum-style) address that submitted the claims for settlement.
     /// - Input: a [Timestamp] (`since`).
-    /// - Returns: the list of most recent timestamped and signed [SettledVerifiedClaim]s recorded since the given timestamp (limited at 64 entries).
+    /// - Returns: the list of timestamped and signed [SettledVerifiedClaim]s recorded since the given timestamp (limited at 64 entries).
     ///
     /// Will fail if:
     ///
@@ -126,7 +126,7 @@ pub trait ClaimRpc {
     ///
     /// - Input: the (Ethereum-style) address that submitted the claims for verification.
     /// - Input: a [Timestamp] (`since`)
-    /// - Returns: the list of most recent timestamped and signed [SubmittedClaim]s recorded since the given timestamp (limited at 64 entries).
+    /// - Returns: the list of timestamped and signed [SubmittedClaim]s recorded since the given timestamp (limited at 64 entries).
     ///
     /// Will fail if:
     ///

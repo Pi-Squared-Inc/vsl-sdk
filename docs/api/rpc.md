@@ -101,7 +101,7 @@ String
 Yields (recent) settled claims metadata
 
 - Input: a [Timestamp](#timestamp) (`since`)
-- Returns: a list containing metadata for the most recent settled claims recorded since the given timestamp (limited at 64 entries).
+- Returns: a list containing metadata for the settled claims recorded since the given timestamp (limited at 64 entries).
 
 **Parameters**:
 
@@ -118,7 +118,7 @@ Vec< [Timestamped](#timestamped)< [SettledClaimData](#settledclaimdata) > >
 Yields (recent) submitted claims metadata
 
 - Input: a [Timestamp](#timestamp) (`since`)
-- Returns: a list containing metadata for the most recent submitted claims recorded since the given timestamp (limited at 64 entries).
+- Returns: a list containing metadata for the submitted claims recorded since the given timestamp (limited at 64 entries).
 
 **Parameters**:
 
@@ -136,7 +136,7 @@ Yields (recent) settled claims for a receiver.
 
 - Input: the (Ethereum-style) address for which settled claims are tracked (optional).
 - Input: a [Timestamp](#timestamp) (`since`)
-- Returns: the list of most recent timestamped and signed [SettledVerifiedClaim](#settledverifiedclaim)s recorded since the given timestamp (limited at 64 entries).
+- Returns: the list of timestamped and signed [SettledVerifiedClaim](#settledverifiedclaim)s recorded since the given timestamp (limited at 64 entries).
 
 Will fail if:
 
@@ -159,7 +159,7 @@ Yields (recent) claim verification requests for a receiver.
 
 - Input: the (Ethereum-style) address for which claims requests are tracked.
 - Input: a [Timestamp](#timestamp) (`since`)
-- Returns: the list of most recent timestamped and signed [SubmittedClaim](#submittedclaim)s recorded since the given timestamp (limited at 64 entries).
+- Returns: the list of timestamped and signed [SubmittedClaim](#submittedclaim)s recorded since the given timestamp (limited at 64 entries).
 
 Will fail if:
 
@@ -182,7 +182,7 @@ Yields (recent) settled claims from an address.
 
 - Input: the (Ethereum-style) address that submitted the claims for settlement.
 - Input: a [Timestamp](#timestamp) (`since`).
-- Returns: the list of most recent timestamped and signed [SettledVerifiedClaim](#settledverifiedclaim)s recorded since the given timestamp (limited at 64 entries).
+- Returns: the list of timestamped and signed [SettledVerifiedClaim](#settledverifiedclaim)s recorded since the given timestamp (limited at 64 entries).
 
 Will fail if:
 
@@ -205,7 +205,7 @@ Yields (recent) claim verification requests from an address.
 
 - Input: the (Ethereum-style) address that submitted the claims for verification.
 - Input: a [Timestamp](#timestamp) (`since`)
-- Returns: the list of most recent timestamped and signed [SubmittedClaim](#submittedclaim)s recorded since the given timestamp (limited at 64 entries).
+- Returns: the list of timestamped and signed [SubmittedClaim](#submittedclaim)s recorded since the given timestamp (limited at 64 entries).
 
 Will fail if:
 
@@ -337,10 +337,12 @@ String
 
 Retrieves information about a specific account.
 
-Currently not implemented
-
 - Input: the (Ethereum-style) address of the account to query.
-- Returns: a JSON string representing the account's metadata.
+- Returns: An [AccountData](#accountdata) structure with information about the account.
+
+Will fail if:
+
+- `account_id` not valid
 
 **Parameters**:
 
@@ -348,7 +350,7 @@ Currently not implemented
 
 **Returns**:
 
-String
+[AccountData](#accountdata)
 
 ---
 
@@ -478,6 +480,7 @@ Retrieves creation metadata for a given asset by its ID.
   or `None` if no asset with that id was created.
 
 Will fail if:
+
 - `asset_id` not valid
 
 **Parameters**:
@@ -653,7 +656,7 @@ An (unsigned) vls_submitClaim request for claim-verification
 
 ## SubmittedClaimData
 
-Metadata for a settled (verified) claim
+Metadata for a submitted claim
 
 **JSON Schema**: [SubmittedClaimData](SubmittedClaimData.json)
 
@@ -774,6 +777,22 @@ The return object of a `vsl_createAsset` request
 - **asset_id** (string): The ID (hex-encoded 256 bit hash) of the asset
 
 - **claim_id** (string): Settled claim ID for the create asset command  (hex-encoded 256 bit hash)
+
+## AccountData
+
+Collected public data about an account
+
+**JSON Schema**: [AccountData](AccountData.json)
+
+### Fields:
+
+- **asset_balances** (object): The balances of all assets held by the account.
+
+- **balance** (string): the account native token balance (u128 formatted as hex string).
+
+- **nonce** (integer): the account nonce (64 bit unsigned integer)
+
+- **state** ("string", optional): the current state of the account (a 256-bit hash), or `None` if unset.
 
 ## TransferAssetMessage
 
