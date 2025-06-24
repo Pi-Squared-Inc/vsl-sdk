@@ -4,9 +4,9 @@ use jsonrpsee::proc_macros::rpc;
 
 use crate::Timestamp;
 use crate::rpc_messages::{
-    CreateAssetMessage, CreateAssetResult, PayMessage, SetStateMessage, SettleClaimMessage,
-    SettledClaimData, SettledVerifiedClaim, SubmittedClaim, SubmittedClaimData, Timestamped,
-    TransferAssetMessage,
+    AccountData, CreateAssetMessage, CreateAssetResult, PayMessage, SetStateMessage,
+    SettleClaimMessage, SettledClaimData, SettledVerifiedClaim, SubmittedClaim, SubmittedClaimData,
+    Timestamped, TransferAssetMessage,
 };
 
 #[rpc(server, client)]
@@ -207,12 +207,14 @@ pub trait ClaimRpc {
 
     /// Retrieves information about a specific account.
     ///
-    /// Currently not implemented
-    ///
     /// - Input: the (Ethereum-style) address of the account to query.
-    /// - Returns: a JSON string representing the account's metadata.
+    /// - Returns: An [AccountData] structure with information about the account.
+    ///
+    /// Will fail if:
+    ///
+    /// - `account_id` not valid
     #[method(name = "vsl_getAccount", param_kind = map)]
-    async fn get_account(&self, account_id: String) -> RpcResult<String>;
+    async fn get_account(&self, account_id: String) -> RpcResult<AccountData>;
 
     /// Retrieves the native token balance of a given account.
     ///
@@ -296,6 +298,7 @@ pub trait ClaimRpc {
     ///   or `None` if no asset with that id was created.
     ///
     /// Will fail if:
+    ///
     /// - `asset_id` not valid
     #[method(name = "vsl_getAssetById", param_kind = map)]
     async fn get_asset_by_id(&self, asset_id: String) -> RpcResult<Option<CreateAssetMessage>>;
