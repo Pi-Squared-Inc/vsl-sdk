@@ -5,6 +5,7 @@ use alloy::primitives::{Address, B256, Keccak256, keccak256, wrap_fixed_bytes};
 use alloy_rlp::{Decodable, Encodable, RlpDecodable, RlpEncodable};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::str::FromStr as _;
 
 use crate::helpers::{HasSender, IntoSigned};
@@ -498,4 +499,17 @@ impl IdentifiableClaim for TransferAssetMessage {
             &serde_json::to_string(&ValidatorVerifiedClaim::from(self)).unwrap(),
         )
     }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+/// Collected public data about an account
+pub struct AccountData {
+    /// the account nonce (64 bit unsigned integer)
+    pub nonce: u64,
+    /// the account native token balance (u128 formatted as hex string).
+    pub balance: String,
+    /// The balances of all assets held by the account.
+    pub asset_balances: HashMap<String, String>,
+    /// the current state of the account (a 256-bit hash), or `None` if unset.
+    pub state: Option<String>,
 }

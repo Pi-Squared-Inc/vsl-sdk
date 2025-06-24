@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::num::ParseIntError;
 use std::str::FromStr;
 
 use alloy::consensus::Signed;
@@ -12,11 +13,11 @@ use jsonrpsee::ws_client::WsClient;
 
 use crate::helpers::IntoSigned;
 use crate::rpc_messages::{
-    AccountStateHash, CreateAssetMessage, CreateAssetResult, IdentifiableClaim as _, PayMessage,
-    SetStateMessage, SettleClaimMessage, SettledClaimData, SettledVerifiedClaim, SubmittedClaim,
-    SubmittedClaimData, Timestamped, TransferAssetMessage,
+    AccountData, AccountStateHash, CreateAssetMessage, CreateAssetResult, IdentifiableClaim as _,
+    PayMessage, SetStateMessage, SettleClaimMessage, SettledClaimData, SettledVerifiedClaim,
+    SubmittedClaim, SubmittedClaimData, Timestamped, TransferAssetMessage,
 };
-use crate::{Address, ParseAmountError, Timestamp, B256};
+use crate::{Address, B256, ParseAmountError, Timestamp};
 use crate::{Amount, AssetId};
 
 /// Metadata about an asset
@@ -79,6 +80,50 @@ impl TryInto<CreateAssetMessage> for AssetData {
     }
 }
 
+pub struct AccountMetaData {
+    pub nonce: u64,
+    pub balance: Amount,
+    pub asset_balances: HashMap<AssetId, Amount>,
+    pub state: Option<AccountStateHash>,
+}
+
+impl TryFrom<AccountData> for AccountMetaData {
+    type Error = RpcWrapperError;
+
+    fn try_from(value: AccountData) -> Result<Self, Self::Error> {
+        let AccountData {
+            nonce,
+            balance,
+            asset_balances,
+            state,
+        } = value;
+        let balance = Amount::from_hex_str(&balance)?;
+        let asset_balances: HashMap<AssetId, Amount> = { try_from_asset_balances(asset_balances)? };
+        let state = match state {
+            None => None,
+            Some(state) => Some(AccountStateHash::from_str(&state)?),
+        };
+        Ok(AccountMetaData {
+            nonce,
+            balance,
+            asset_balances,
+            state,
+        })
+    }
+}
+
+fn try_from_asset_balances(
+    asset_balances: HashMap<String, String>,
+) -> Result<HashMap<AssetId, Amount>, RpcWrapperError> {
+    let mut balances = HashMap::with_capacity(asset_balances.len());
+    for (id, balance) in asset_balances {
+        let id = AssetId::from_str(&id)?;
+        let balance = Amount::from_hex_str(&balance)?;
+        balances.insert(id, balance);
+    }
+    Ok(balances)
+}
+
 #[derive(Debug)]
 pub enum RpcWrapperError {
     RpcError(RpcError),
@@ -117,6 +162,12 @@ impl From<bcs::Error> for RpcWrapperError {
 impl From<ParseAmountError> for RpcWrapperError {
     fn from(value: ParseAmountError) -> Self {
         Self::AmountError(value)
+    }
+}
+
+impl From<ParseIntError> for RpcWrapperError {
+    fn from(value: ParseIntError) -> Self {
+        Self::ParseError(value.to_string())
     }
 }
 
@@ -358,8 +409,7 @@ where
         to: &Address,
         amount: &Amount,
     ) -> RpcWrapperResult<B256> {
-        let transfer_asset_message =
-            self.transfer_asset_message(asset_id, to, amount)?;
+        let transfer_asset_message = self.transfer_asset_message(asset_id, to, amount)?;
         let signed_claim = self.sign(transfer_asset_message)?;
         let response: String = self
             .rpc_client
@@ -490,6 +540,13 @@ where
     /// - Returns: a map of asset IDs to balances
     pub async fn get_asset_balances(&self) -> RpcWrapperResult<HashMap<AssetId, Amount>> {
         get_asset_balances(self.rpc_client(), self.address()).await
+    }
+
+    /// Retrieves information about the current account.
+    ///
+    /// - Returns: An [AccountData] structure with information about the account.
+    pub async fn get_account(&self) -> RpcWrapperResult<AccountMetaData> {
+        get_account(self.rpc_client(), &self.address).await
     }
 
     /// Retrieves creation metadata for a given asset by its ID.
@@ -626,7 +683,10 @@ pub async fn get_submitted_claim_by_id<T: ClientT>(
     claim_id: &B256,
 ) -> RpcWrapperResult<Timestamped<Signed<SubmittedClaim>>> {
     let response = rpc_client
-        .request("vsl_getSubmittedClaimById", rpc_params![claim_id.to_string()])
+        .request(
+            "vsl_getSubmittedClaimById",
+            rpc_params![claim_id.to_string()],
+        )
         .await?;
     Ok(response)
 }
@@ -799,12 +859,7 @@ pub async fn get_asset_balances<T: ClientT>(
     let response: HashMap<String, String> = rpc_client
         .request("vsl_getAssetBalances", rpc_params![account_id.to_string()])
         .await?;
-    let mut result = HashMap::with_capacity(response.len());
-    for (asset_id, amount) in response {
-        let asset_id = AssetId::from_str(&asset_id)?;
-        result.insert(asset_id, Amount::from_hex_str(&amount)?);
-    }
-    Ok(result)
+    try_from_asset_balances(response)
 }
 
 /// Retrieves creation metadata for a given asset by its ID.
@@ -851,6 +906,24 @@ pub async fn get_account_nonce<T: ClientT>(
         .request("vsl_getAccountNonce", rpc_params![account_id.to_string()])
         .await?;
     Ok(response)
+}
+
+/// Retrieves information about a specific account.
+///
+/// - Input: the (Ethereum-style) address of the account to query.
+/// - Returns: An [AccountData] structure with information about the account.
+///
+/// Will fail if:
+///
+/// - `account_id` not valid
+pub async fn get_account<T: ClientT>(
+    rpc_client: &T,
+    account_id: &Address,
+) -> RpcWrapperResult<AccountMetaData> {
+    let response: AccountData = rpc_client
+        .request("vsl_getAccount", rpc_params![account_id.to_string()])
+        .await?;
+    AccountMetaData::try_from(response)
 }
 
 /// Checks if the server is up and ready.
