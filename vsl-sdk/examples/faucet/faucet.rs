@@ -1,4 +1,4 @@
-use std::{collections::HashSet, path::PathBuf, str::FromStr, time::Duration};
+use std::{collections::HashSet, path::PathBuf, time::Duration};
 
 use clap::Parser;
 use config::Config;
@@ -92,7 +92,7 @@ pub async fn main() -> RpcWrapperResult<()> {
             if settled_claim
                 .verifiers
                 .iter()
-                .find(|a| Address::from_str(a).is_ok_and(|addr| addr == settings.verifier_address))
+                .find(|a| a.address == settings.verifier_address)
                 .is_none()
             {
                 eprintln!("Recognized verifier not among the verifiers settling the claim");
@@ -100,13 +100,7 @@ pub async fn main() -> RpcWrapperResult<()> {
             }
             // check
             let claim_owner = &settled_claim.verified_claim.claim_owner;
-            let Ok(faucet_client) = Address::from_str(claim_owner) else {
-                eprintln!(
-                    "Cannot parse requesting funds from the faucet: '{}'",
-                    claim_owner
-                );
-                continue;
-            };
+            let faucet_client = claim_owner.address;
             let amount = &settled_claim.verified_claim.claim;
             let Ok(amount) = Amount::from_hex_str(amount) else {
                 eprintln!("Cannot parse the requested amount: {}", amount);
