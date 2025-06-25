@@ -25,14 +25,7 @@ Private key: 0xc3bbe3b26edabb0be0298244517a6f97538be4f7df3ed1b3508f2804f9932019
 Address: 0x75c51B0770646902999e55D86c5F399FaF6AbDc7
 ```
 
-In this tutorial, we will use the private key and address above. Note that, in general, the private key should be kept... well... private.
-
-You can also use the [vsl-cli](https://github.com/Pi-Squared-Inc/vsl-cli) tool, with the following commands:
-
-```bash
-vsl-cli account:create my-account
-vsl-cli account:export my-account
-```
+In this tutorial, we will use the private key and address above. Note that, in general, the private key should be kept private.
 
 ## Setting up VSL
 
@@ -90,6 +83,8 @@ eval `ssh-agent -s`
 ssh-add
 ```
 
+then you can retry the `add` command.
+
 ## Initialization
 
 In this tutorial, we will use async features. We will use tokyo to handle this.
@@ -121,7 +116,7 @@ use jsonrpsee::http_client::HttpClientBuilder;
 and, in the main function, create the http client:
 
 ```rs
-    let http_url = "http://127.0.0.1:4000/".to_string();
+    let http_url = "http://127.0.0.1:44444/".to_string();
     let http_client = HttpClientBuilder::new()
         .build(http_url)
         .expect("Could not connect");
