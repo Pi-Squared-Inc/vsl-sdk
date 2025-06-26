@@ -178,7 +178,7 @@ The verifiers are paid for their work, so the client must specify the amount use
     let fee = Amount::from_attos(1);
 ```
 
-Each claim must specify an expiration time. If the clam was not settled before the expiration time, it will be deleted.
+Each claim must specify an expiration time. If the claim was not settled before the expiration time, it will be deleted.
 
 ```rs
     let now = Timestamp::now();
