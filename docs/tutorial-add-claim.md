@@ -162,8 +162,8 @@ Next, we need the claim data. The `claim`, `claim_type` and `proof` fields are o
 Each claim must be verified by at least one verifier. Since verifiers are outside of the scope of this tutorial, we will provide a dummy address here.
 
 ```rs
-    let verifier_address_str = "0x1234567890abcdef1234567890abcdef12345678".to_string();
-    let verifier_address = Address::from_str(&&verifier_address_str).expect("Invalid address");
+    let verifier_address_str = "0x1234567890abcdef1234567890abcdef12345678";
+    let verifier_address = Address::from_str(verifier_address_str).expect("Invalid address");
 ```
 
 In general, we can have multiple verifiers, and we must specify how many of them must verify our claim before the VSL validator will allow it to be settled.
@@ -235,8 +235,8 @@ pub async fn main() {
     let claim = "The claim".to_string();
     let claim_type = "The claim type".to_string();
     let proof = "A proof".to_string();
-    let verifier_address_str = "0x1234567890abcdef1234567890abcdef12345678".to_string();
-    let verifier_address = Address::from_str(&&verifier_address_str).expect("Invalid address");
+    let verifier_address_str = "0x1234567890abcdef1234567890abcdef12345678";
+    let verifier_address = Address::from_str(verifier_address_str).expect("Invalid address");
     let quorum = 1_u16;
     let fee = Amount::from_attos(1);
     let now = Timestamp::now();
