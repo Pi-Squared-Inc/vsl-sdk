@@ -87,7 +87,7 @@ then you can retry the `add` command.
 
 ## Initialization
 
-In this tutorial, we will use async features. We will use tokyo to handle this.
+In this tutorial, we will use async features. We will use `tokio` to handle this.
 
 ```bash
 cargo add tokio@1.45.1
