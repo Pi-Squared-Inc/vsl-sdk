@@ -151,7 +151,7 @@ use vsl_sdk::Amount;
 use vsl_sdk::Timestamp;
 ```
 
-Next, we need the claim data. The `claim`, `claim_type` and `proof` fields are opaque to the VSL validator. They should make sens to the client making the request (you) and to the verifiers specified when submitting the claim.
+Next, we need the claim data. The `claim`, `claim_type` and `proof` fields are opaque to the VSL validator. They should make sense to the client making the request (you) and to the verifiers specified when submitting the claim.
 
 ```rs
     let claim = "The claim".to_string();
