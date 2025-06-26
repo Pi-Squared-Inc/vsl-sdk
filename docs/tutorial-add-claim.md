@@ -93,7 +93,7 @@ In this tutorial, we will use async features. We will use tokyo to handle this.
 cargo add tokio@1.45.1
 ```
 
-Next, let us make the `main` function async. Let us open`src/main.rs` and replace its contents with the following:
+Next, let us make the `main` function async. Let us open `src/main.rs` and replace its contents with the following:
 
 ```rs
 #[tokio::main(flavor = "current_thread")]
