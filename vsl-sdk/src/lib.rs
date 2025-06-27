@@ -116,7 +116,8 @@ impl Amount {
         if s.starts_with('0') {
             return Err(ParseAmountError::LeadingZeros);
         } else {
-            let subunits = u128::from_str_radix(s, 16).map_err(ParseAmountError::ParseInt)?;
+            let subunits =
+                u128::from_str_radix(s, 16).map_err(ParseAmountError::ParseInt)?;
             return Ok(Self::from_subunits(subunits));
         }
     }

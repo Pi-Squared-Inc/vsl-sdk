@@ -405,7 +405,8 @@ where
         to: &Address,
         amount: &Amount,
     ) -> RpcWrapperResult<B256> {
-        let transfer_asset_message = self.transfer_asset_message(asset_id, to, amount)?;
+        let transfer_asset_message =
+            self.transfer_asset_message(asset_id, to, amount)?;
         let signed_claim = self.sign(transfer_asset_message)?;
         let response: String = self
             .rpc_client
@@ -438,7 +439,7 @@ where
     ///
     /// Will fail if:
     ///
-    /// - sender balance cannot cover validation fee    
+    /// - sender balance cannot cover validation fee
     pub async fn set_account_state(&mut self, state: &AccountStateHash) -> RpcWrapperResult<B256> {
         let set_state_message = SetStateMessage {
             from: self.address().clone().into(),
