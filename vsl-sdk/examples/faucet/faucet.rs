@@ -7,7 +7,7 @@ use serde::Deserialize;
 use tokio::time::sleep;
 use vsl_sdk::{
     Address, Amount, IntoSigned, Timestamp,
-    rpc_wrapper::{self, RpcWrapper, RpcWrapperResult, format_amount, parse_amount},
+    rpc_wrapper::{self, RpcWrapper, RpcWrapperResult},
 };
 
 const LOOP_INTERVAL: u64 = 5; // seconds
@@ -53,7 +53,7 @@ pub async fn main() -> RpcWrapperResult<()> {
         .try_deserialize()
         .expect("Config error");
 
-    let max_amount = Amount::from_tokens(settings.max_amount as u128);
+    let max_amount = Amount::from_vsl_tokens(settings.max_amount as u128);
 
     // Initialize an Http client for regular RPC communication
     let http_url = format!("http://{}", settings.vsl_server_addr);
@@ -108,7 +108,7 @@ pub async fn main() -> RpcWrapperResult<()> {
                 continue;
             };
             let amount = &settled_claim.verified_claim.claim;
-            let Ok(amount) = parse_amount(amount) else {
+            let Ok(amount) = Amount::from_hex_str(amount) else {
                 eprintln!("Cannot parse the requested amount: {}", amount);
                 continue;
             };
@@ -124,14 +124,14 @@ pub async fn main() -> RpcWrapperResult<()> {
             let Ok(response) = account.pay(&faucet_client, &amount).await else {
                 eprintln!(
                     "Error while transfering amount '{}' to client '{}'",
-                    format_amount(amount),
+                    amount.to_str_with_decimals(18),
                     faucet_client
                 );
                 continue;
             };
             eprintln!(
                 "Payed {} to {} (transaction id: {})",
-                format_amount(amount),
+                amount.to_str_with_decimals(18),
                 faucet_client,
                 response
             );

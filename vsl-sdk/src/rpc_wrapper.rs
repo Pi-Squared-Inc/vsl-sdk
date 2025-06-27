@@ -12,70 +12,12 @@ use jsonrpsee::ws_client::WsClient;
 
 use crate::helpers::IntoSigned;
 use crate::rpc_messages::{
-    AccountStateHash, CreateAssetMessage, IdentifiableClaim as _, PayMessage, SetStateMessage,
-    SettleClaimMessage, SettledVerifiedClaim, SubmittedClaim, Timestamped, TransferAssetMessage,
+    AccountStateHash, CreateAssetMessage, CreateAssetResult, IdentifiableClaim as _, PayMessage,
+    SetStateMessage, SettleClaimMessage, SettledClaimData, SettledVerifiedClaim, SubmittedClaim,
+    SubmittedClaimData, Timestamped, TransferAssetMessage,
 };
-use crate::{Address, B256, Timestamp};
+use crate::{Address, ParseAmountError, Timestamp, B256};
 use crate::{Amount, AssetId};
-
-pub fn format_amount(amount: Amount) -> String {
-    format!("{:#x}", amount)
-}
-
-pub fn format_token_amount(amount: Amount, decimals: u8) -> RpcWrapperResult<String> {
-    assert!(decimals <= 18);
-    let mut atto_amount = u128::from(amount);
-    if decimals != 18 {
-        // Amount is using 18 decimals; scale to fit token amount decimals
-        let multiplier: u128 = 10_u128.checked_pow(18 - decimals as u32).unwrap();
-        let remainder = atto_amount % multiplier;
-        atto_amount /= multiplier;
-        if remainder != 0 {
-            return Err(RpcWrapperError::AmountError(
-                "Amount uses more decimals than allowed.".to_string(),
-            ));
-        }
-    }
-    Ok(format!("{:#x}", atto_amount))
-}
-
-pub fn parse_amount(s: &str) -> RpcWrapperResult<Amount> {
-    parse_token_amount(s, 18)
-}
-
-pub fn parse_token_amount(s: &str, decimals: u8) -> RpcWrapperResult<Amount> {
-    assert!(decimals <= 18);
-    if !s.starts_with("0x") {
-        return Err(RpcWrapperError::AmountError(
-            "Amount should start with 0x".to_string(),
-        ));
-    }
-    let s = &s[2..];
-    if s == "0" {
-        return Ok(Amount::ZERO);
-    }
-    if s.starts_with('0') {
-        return Err(RpcWrapperError::AmountError(
-            "Amount should not start with 0x0".to_string(),
-        ));
-    } else {
-        let mut attos =
-            u128::from_str_radix(s, 16).map_err(|e| RpcWrapperError::AmountError(e.to_string()))?;
-        if decimals != 18 {
-            // Amount is using 18 decimals; scale token amount to fit that
-            let multiplier = 10_u128.checked_pow(18 - decimals as u32).unwrap();
-            attos = match attos.checked_mul(multiplier) {
-                None => {
-                    return Err(RpcWrapperError::AmountError(
-                        "Speficied amount cannot be represented".to_string(),
-                    ));
-                }
-                Some(n) => n,
-            };
-        }
-        return Ok(Amount::from_attos(attos));
-    }
-}
 
 /// Metadata about an asset
 pub struct AssetData {
@@ -112,7 +54,7 @@ impl TryFrom<CreateAssetMessage> for AssetData {
                 "Cannot parse nonce".to_string(),
             ));
         };
-        let total_supply = parse_token_amount(&total_supply, decimals)?;
+        let total_supply = Amount::from_hex_str(&total_supply)?;
         Ok(Self {
             account_id,
             nonce,
@@ -132,7 +74,7 @@ impl TryInto<CreateAssetMessage> for AssetData {
             nonce: self.nonce.to_string(),
             ticker_symbol: self.ticker_symbol,
             decimals: self.decimals,
-            total_supply: format_token_amount(self.total_supply, self.decimals)?,
+            total_supply: self.total_supply.to_hex_str(),
         })
     }
 }
@@ -142,7 +84,7 @@ pub enum RpcWrapperError {
     RpcError(RpcError),
     FromHexError(FromHexError),
     SignError(SignError),
-    AmountError(String),
+    AmountError(ParseAmountError),
     AssetError(bcs::Error),
     ParseError(String),
     NonExistentAsset,
@@ -169,6 +111,12 @@ impl From<SignError> for RpcWrapperError {
 impl From<bcs::Error> for RpcWrapperError {
     fn from(value: bcs::Error) -> Self {
         Self::AssetError(value)
+    }
+}
+
+impl From<ParseAmountError> for RpcWrapperError {
+    fn from(value: ParseAmountError) -> Self {
+        Self::AmountError(value)
     }
 }
 
@@ -279,7 +227,7 @@ where
             quorum,
             from: self.address().to_string(),
             expires,
-            fee: format_amount(fee),
+            fee: fee.to_hex_str(),
         };
         let claim = self.sign(submitted_claim)?;
         let response: String = self
@@ -329,7 +277,7 @@ where
             from: self.address().to_string(),
             nonce: self.nonce().to_string(),
             to: to.to_string(),
-            amount: format_amount(*amount),
+            amount: amount.to_hex_str(),
         };
         let signed_claim = self.sign(pay_message)?;
         let response: String = self
@@ -357,16 +305,19 @@ where
         ticker_symbol: &str,
         decimals: u8,
         total_supply: &Amount,
-    ) -> RpcWrapperResult<AssetId> {
+    ) -> RpcWrapperResult<(AssetId, B256)> {
         let create_asset_message =
             self.create_asset_message(ticker_symbol, decimals, total_supply)?;
         let signed_claim = self.sign(create_asset_message)?;
-        let response: String = self
+        let response: CreateAssetResult = self
             .rpc_client
             .request("vsl_createAsset", rpc_params![signed_claim])
             .await?;
         self.inc_nonce();
-        Ok(AssetId::from_str(&response)?)
+        Ok((
+            AssetId::from_str(&response.asset_id)?,
+            B256::from_str(&response.claim_id)?,
+        ))
     }
 
     pub fn create_asset_message(
@@ -407,11 +358,8 @@ where
         to: &Address,
         amount: &Amount,
     ) -> RpcWrapperResult<B256> {
-        let Some(asset_data) = self.get_asset_by_id(asset_id).await? else {
-            return Err(RpcWrapperError::NonExistentAsset);
-        };
         let transfer_asset_message =
-            self.transfer_asset_message(asset_id, to, amount, asset_data.decimals)?;
+            self.transfer_asset_message(asset_id, to, amount)?;
         let signed_claim = self.sign(transfer_asset_message)?;
         let response: String = self
             .rpc_client
@@ -426,13 +374,12 @@ where
         asset_id: &AssetId,
         to: &Address,
         amount: &Amount,
-        decimals: u8,
     ) -> RpcWrapperResult<TransferAssetMessage> {
         Ok(TransferAssetMessage {
             from: self.address().to_string(),
             nonce: self.nonce().to_string(),
             to: to.to_string(),
-            amount: format_token_amount(*amount, decimals)?,
+            amount: amount.to_hex_str(),
             asset_id: asset_id.to_string(),
         })
     }
@@ -477,6 +424,54 @@ where
         get_settled_claim_by_id(&self.rpc_client, claim_id).await
     }
 
+    /// Retrieves a submitted claim by its unique claim ID.
+    ///
+    /// - Input: a claim ID, which is the Keccak256 hash of the claim creator, creation nonce, and claim string.
+    /// - Returns: the timestamped and signed [SubmittedClaim] claim corresponding to the given claim ID.
+    ///
+    /// Will fail if:
+    ///
+    /// - claim is not found among the submitted claims
+    pub async fn get_submitted_claim_by_id(
+        &self,
+        // the Keccak256 hash of the claim creator, creation nonce, and claim string.
+        claim_id: &B256,
+    ) -> RpcWrapperResult<Timestamped<Signed<SubmittedClaim>>> {
+        get_submitted_claim_by_id(&self.rpc_client, claim_id).await
+    }
+
+    /// Retrieves the claim data contained in the submitted claim with the given ID.
+    ///
+    /// - Input: a claim ID, which is the Keccak256 hash of the claim creator, creation nonce, and claim string.
+    /// - Returns: the contents of the `claim` field from the corresponding [SubmittedClaim].
+    ///
+    /// Will fail if:
+    ///
+    /// - no claim with given ID is not found among the submitted claims
+    pub async fn get_claim_data_by_id(
+        &self,
+        // the Keccak256 hash of the claim creator, creation nonce, and claim string.
+        claim_id: &B256,
+    ) -> RpcWrapperResult<String> {
+        get_claim_data_by_id(self.rpc_client(), claim_id).await
+    }
+
+    /// Retrieves the proof contained in the submitted claim with the given ID.
+    ///
+    /// - Input: a claim ID, which is the Keccak256 hash of the claim creator, creation nonce, and claim string.
+    /// - Returns: the contents of the `proof` field from the corresponding [SubmittedClaim].
+    ///
+    /// Will fail if:
+    ///
+    /// - no claim with given ID is not found among the submitted claims
+    pub async fn get_proof_by_id(
+        &self,
+        // the Keccak256 hash of the claim creator, creation nonce, and claim string.
+        claim_id: &B256,
+    ) -> RpcWrapperResult<String> {
+        get_proof_by_id(self.rpc_client(), claim_id).await
+    }
+
     /// Retrieves the native token balance of the wrapped account.
     pub async fn get_balance(&self) -> RpcWrapperResult<Amount> {
         get_balance(self.rpc_client(), self.address()).await
@@ -510,6 +505,28 @@ where
     /// The state is a 256-bit hash
     pub async fn get_account_state(&self) -> RpcWrapperResult<Option<AccountStateHash>> {
         get_account_state(self.rpc_client(), self.address()).await
+    }
+
+    /// Yields (recent) settled claims metadata
+    ///
+    /// - Input: a [Timestamp] (`since`)
+    /// - Returns: a list containing metadata for the most recent settled claims recorded since the given timestamp (limited at 64 entries).
+    pub async fn list_settled_claims_metadata(
+        &self,
+        since: &Timestamp,
+    ) -> RpcWrapperResult<Vec<Timestamped<SettledClaimData>>> {
+        list_settled_claims_metadata(self.rpc_client(), since).await
+    }
+
+    /// Yields (recent) claim verification requests metadata
+    ///
+    /// - Input: a [Timestamp] (`since`)
+    /// - Returns: a list containing metadata for the most recent submitted claims recorded since the given timestamp (limited at 64 entries).
+    pub async fn list_submitted_claims_metadata(
+        &self,
+        since: &Timestamp,
+    ) -> RpcWrapperResult<Vec<Timestamped<SubmittedClaimData>>> {
+        list_submitted_claims_metadata(self.rpc_client(), since).await
     }
 
     /// Yields (recent) settled claims which were originally submitted for verification by the wrapped account.
@@ -557,6 +574,63 @@ where
     }
 }
 
+/// Retrieves the claim data contained in the submitted claim with the given ID.
+///
+/// - Input: a claim ID, which is the Keccak256 hash of the claim creator, creation nonce, and claim string.
+/// - Returns: the contents of the `claim` field from the corresponding [SubmittedClaim].
+///
+/// Will fail if:
+///
+/// - no claim with given ID is not found among the submitted claims
+pub async fn get_claim_data_by_id<T: ClientT>(
+    rpc_client: &T,
+    // the Keccak256 hash of the claim creator, creation nonce, and claim string.
+    claim_id: &B256,
+) -> RpcWrapperResult<String> {
+    let response = rpc_client
+        .request("vsl_getClaimDataById", rpc_params![claim_id.to_string()])
+        .await?;
+    Ok(response)
+}
+
+/// Retrieves the proof contained in the submitted claim with the given ID.
+///
+/// - Input: a claim ID, which is the Keccak256 hash of the claim creator, creation nonce, and claim string.
+/// - Returns: the contents of the `proof` field from the corresponding [SubmittedClaim].
+///
+/// Will fail if:
+///
+/// - no claim with given ID is not found among the submitted claims
+pub async fn get_proof_by_id<T: ClientT>(
+    rpc_client: &T,
+    // the Keccak256 hash of the claim creator, creation nonce, and claim string.
+    claim_id: &B256,
+) -> RpcWrapperResult<String> {
+    let response = rpc_client
+        .request("vsl_getProofById", rpc_params![claim_id.to_string()])
+        .await?;
+    Ok(response)
+}
+
+/// Retrieves a submitted claim by its unique claim ID.
+///
+/// - Input: a claim ID, which is the Keccak256 hash of the claim creator, creation nonce, and claim string.
+/// - Returns: the timestamped and signed [SubmittedClaim] claim corresponding to the given claim ID.
+///
+/// Will fail if:
+///
+/// - claim is not found among the submitted claims
+pub async fn get_submitted_claim_by_id<T: ClientT>(
+    rpc_client: &T,
+    // the Keccak256 hash of the claim creator, creation nonce, and claim string.
+    claim_id: &B256,
+) -> RpcWrapperResult<Timestamped<Signed<SubmittedClaim>>> {
+    let response = rpc_client
+        .request("vsl_getSubmittedClaimById", rpc_params![claim_id.to_string()])
+        .await?;
+    Ok(response)
+}
+
 /// Retrieves a settled claim by its unique claim ID.
 ///
 /// - Input: a claim ID, which is the Keccak256 hash of the claim creator, creation nonce, and claim string.
@@ -576,11 +650,39 @@ pub async fn get_settled_claim_by_id<T: ClientT>(
     Ok(response)
 }
 
+/// Yields (recent) settled claims metadata
+///
+/// - Input: a [Timestamp] (`since`)
+/// - Returns: a list containing metadata for the most recent settled claims recorded since the given timestamp (limited at 64 entries).
+pub async fn list_settled_claims_metadata<T: ClientT>(
+    rpc_client: &T,
+    since: &Timestamp,
+) -> RpcWrapperResult<Vec<Timestamped<SettledClaimData>>> {
+    let response = rpc_client
+        .request("vsl_listSettledClaimsMetadata", rpc_params![since])
+        .await?;
+    Ok(response)
+}
+
+/// Yields (recent) claim verification requests metadata
+///
+/// - Input: a [Timestamp] (`since`)
+/// - Returns: a list containing metadata for the most recent submitted claims recorded since the given timestamp (limited at 64 entries).
+pub async fn list_submitted_claims_metadata<T: ClientT>(
+    rpc_client: &T,
+    since: &Timestamp,
+) -> RpcWrapperResult<Vec<Timestamped<SubmittedClaimData>>> {
+    let response = rpc_client
+        .request("vsl_listSubmittedClaimsMetadata", rpc_params![since])
+        .await?;
+    Ok(response)
+}
+
 /// Yields (recent) settled claims for a receiver.
 ///
 /// - Input: the address for which settled claims are tracked (use `None` for all claims).
 /// - Input: a [Timestamp] (`since`)
-/// - Returns: the list of timestamped and signed [SettledVerifiedClaim]s recorded since the given timestamp.
+/// - Returns: the list of most recent timestamped and signed [SettledVerifiedClaim]s recorded since the given timestamp (limited at 64 entries).
 pub async fn list_settled_claims_for_receiver<T: ClientT>(
     rpc_client: &T,
     address: Option<&Address>,
@@ -599,7 +701,7 @@ pub async fn list_settled_claims_for_receiver<T: ClientT>(
 ///
 /// - Input: the address for which claims requests are tracked.
 /// - Input: a [Timestamp] (`since`)
-/// - Returns: the list of timestamped and signed [SubmittedClaim]s recorded since the given timestamp.
+/// - Returns: the list of most recent timestamped and signed [SubmittedClaim]s recorded since the given timestamp (limited at 64 entries).
 pub async fn list_submitted_claims_for_receiver<T: ClientT>(
     rpc_client: &T,
     address: &Address,
@@ -618,7 +720,7 @@ pub async fn list_submitted_claims_for_receiver<T: ClientT>(
 ///
 /// - Input: the address that submitted the claims for settlement.
 /// - Input: a [Timestamp] (`since`).
-/// - Returns: the list of timestamped and signed [SettledVerifiedClaim]s recorded since the given timestamp.
+/// - Returns: the list of most recent timestamped and signed [SettledVerifiedClaim]s recorded since the given timestamp (limited at 64 entries).
 pub async fn list_settled_claims_for_sender<T: ClientT>(
     rpc_client: &T,
     address: &Address,
@@ -637,7 +739,7 @@ pub async fn list_settled_claims_for_sender<T: ClientT>(
 ///
 /// - Input: the address that submitted the claims for verification.
 /// - Input: a [Timestamp] (`since`)
-/// - Returns: the list of timestamped and signed [SubmittedClaim]s recorded since the given timestamp.
+/// - Returns: the list of most recent timestamped and signed [SubmittedClaim]s recorded since the given timestamp (limited at 64 entries).
 pub async fn list_submitted_claims_for_sender<T: ClientT>(
     rpc_client: &T,
     // the address that submitted the claims for verification.
@@ -664,7 +766,7 @@ pub async fn get_balance<T: ClientT>(
     let response: String = rpc_client
         .request("vsl_getBalance", rpc_params![address.to_string()])
         .await?;
-    parse_amount(&response)
+    Ok(Amount::from_hex_str(&response)?)
 }
 
 /// Retrieves the balance of a specific asset held by an account.
@@ -677,16 +779,13 @@ pub async fn get_asset_balance<T: ClientT>(
     account_id: &Address,
     asset_id: &AssetId,
 ) -> RpcWrapperResult<Amount> {
-    let Some(asset_data) = get_asset_by_id(rpc_client, asset_id).await? else {
-        return Err(RpcWrapperError::NonExistentAsset);
-    };
     let response: String = rpc_client
         .request(
             "vsl_getAssetBalance",
             rpc_params![account_id.to_string(), asset_id.to_string()],
         )
         .await?;
-    parse_token_amount(&response, asset_data.decimals)
+    Ok(Amount::from_hex_str(&response)?)
 }
 
 /// Retrieves the balances of all assets held by an account.
@@ -703,10 +802,7 @@ pub async fn get_asset_balances<T: ClientT>(
     let mut result = HashMap::with_capacity(response.len());
     for (asset_id, amount) in response {
         let asset_id = AssetId::from_str(&asset_id)?;
-        let Some(asset_data) = get_asset_by_id(rpc_client, &asset_id).await? else {
-            return Err(RpcWrapperError::NonExistentAsset);
-        };
-        result.insert(asset_id, parse_token_amount(&amount, asset_data.decimals)?);
+        result.insert(asset_id, Amount::from_hex_str(&amount)?);
     }
     Ok(result)
 }
@@ -764,6 +860,36 @@ pub async fn get_health<T: ClientT>(rpc_client: &T) -> RpcWrapperResult<()> {
     let response: String = rpc_client.request("vsl_getHealth", rpc_params!()).await?;
     assert_eq!("ok", response.to_lowercase());
     Ok(())
+}
+
+/// [Subscribe](https://geth.ethereum.org/docs/rpc/pubsub) to the claim verification requests metadata
+///
+/// - yields: a stream of timestamped [SubmittedClaimData]s
+pub async fn subscribe_to_submitted_claims_metadata(
+    ws_client: &WsClient,
+) -> RpcWrapperResult<Subscription<Timestamped<SubmittedClaimData>>> {
+    Ok(ws_client
+        .subscribe(
+            "vsl_subscribeToSubmittedClaimsMetadata",
+            rpc_params![],
+            "vsl_unsubscribeFromSubmittedClaimsMetadata",
+        )
+        .await?)
+}
+
+/// [Subscribe](https://geth.ethereum.org/docs/rpc/pubsub) to the settled claims metadata
+///
+/// - yields: a stream of timestamped [SettledClaimData]s
+pub async fn subscribe_to_settled_claims_metadata(
+    ws_client: &WsClient,
+) -> RpcWrapperResult<Subscription<Timestamped<SettledClaimData>>> {
+    Ok(ws_client
+        .subscribe(
+            "vsl_subscribeToSettledClaimsMetadata",
+            rpc_params![],
+            "vsl_unsubscribeFromSettledClaimsMetadata",
+        )
+        .await?)
 }
 
 /// [Subscribe](https://geth.ethereum.org/docs/rpc/pubsub) to the claim verification requests for a receiver

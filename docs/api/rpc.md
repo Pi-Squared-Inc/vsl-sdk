@@ -4,10 +4,15 @@
 
 - [`vsl_submitClaim`](#vsl_submitclaim)
 - [`vsl_settleClaim`](#vsl_settleclaim)
+- [`vsl_listSettledClaimsMetadata`](#vsl_listsettledclaimsmetadata)
+- [`vsl_listSubmittedClaimsMetadata`](#vsl_listsubmittedclaimsmetadata)
 - [`vsl_listSettledClaimsForReceiver`](#vsl_listsettledclaimsforreceiver)
 - [`vsl_listSubmittedClaimsForReceiver`](#vsl_listsubmittedclaimsforreceiver)
 - [`vsl_listSettledClaimsForSender`](#vsl_listsettledclaimsforsender)
 - [`vsl_listSubmittedClaimsForSender`](#vsl_listsubmittedclaimsforsender)
+- [`vsl_getClaimDataById`](#vsl_getclaimdatabyid)
+- [`vsl_getProofById`](#vsl_getproofbyid)
+- [`vsl_getSubmittedClaimById`](#vsl_getsubmittedclaimbyid)
 - [`vsl_getSettledClaimById`](#vsl_getsettledclaimbyid)
 - [`vsl_pay`](#vsl_pay)
 - [`vsl_getAccount`](#vsl_getaccount)
@@ -21,6 +26,8 @@
 - [`vsl_setAccountState`](#vsl_setaccountstate)
 - [`vsl_getAccountNonce`](#vsl_getaccountnonce)
 - [`vsl_getHealth`](#vsl_gethealth)
+- [`vsl_subscribeToSettledClaimsMetadata`](#vsl_subscribetosettledclaimsmetadata)
+- [`vsl_subscribeToSubmittedClaimsMetadata`](#vsl_subscribetosubmittedclaimsmetadata)
 - [`vsl_subscribeToSettledClaimsForReceiver`](#vsl_subscribetosettledclaimsforreceiver)
 - [`vsl_subscribeToSubmittedClaimsForReceiver`](#vsl_subscribetosubmittedclaimsforreceiver)
 
@@ -86,6 +93,40 @@ Will fail if:
 **Returns**:
 
 String
+
+---
+
+## `vsl_listSettledClaimsMetadata`
+
+Yields (recent) settled claims metadata
+
+- Input: a [Timestamp](#timestamp) (`since`)
+- Returns: a list containing metadata for the most recent settled claims recorded since the given timestamp (limited at 64 entries).
+
+**Parameters**:
+
+- `since`: [Timestamp](#timestamp)
+
+**Returns**:
+
+Vec< [Timestamped](#timestamped)< [SettledClaimData](#settledclaimdata) > >
+
+---
+
+## `vsl_listSubmittedClaimsMetadata`
+
+Yields (recent) submitted claims metadata
+
+- Input: a [Timestamp](#timestamp) (`since`)
+- Returns: a list containing metadata for the most recent submitted claims recorded since the given timestamp (limited at 64 entries).
+
+**Parameters**:
+
+- `since`: [Timestamp](#timestamp)
+
+**Returns**:
+
+Vec< [Timestamped](#timestamped)< [SubmittedClaimData](#submittedclaimdata) > >
 
 ---
 
@@ -178,6 +219,69 @@ Will fail if:
 **Returns**:
 
 Vec< [Timestamped](#timestamped)< Signed< [SubmittedClaim](#submittedclaim) > > >
+
+---
+
+## `vsl_getClaimDataById`
+
+Retrieves the claim data contained in the submitted claim with the given ID.
+
+- Input: a claim ID, which is the Keccak256 hash of the claim creator, creation nonce, and claim string.
+- Returns: the contents of the `claim` field from the corresponding [SubmittedClaim](#submittedclaim).
+
+Will fail if:
+
+- no claim with given ID is not found among the submitted claims
+
+**Parameters**:
+
+- `claim_id`: String
+
+**Returns**:
+
+String
+
+---
+
+## `vsl_getProofById`
+
+Retrieves the proof contained in the submitted claim with the given ID.
+
+- Input: a claim ID, which is the Keccak256 hash of the claim creator, creation nonce, and claim string.
+- Returns: the contents of the `proof` field from the corresponding [SubmittedClaim](#submittedclaim).
+
+Will fail if:
+
+- no claim with given ID is not found among the submitted claims
+
+**Parameters**:
+
+- `claim_id`: String
+
+**Returns**:
+
+String
+
+---
+
+## `vsl_getSubmittedClaimById`
+
+Retrieves a submitted claim by its unique claim ID.
+
+- Input: a claim ID, which is the Keccak256 hash of the claim creator, creation nonce, and claim string.
+- Returns: the timestamped and signed [SubmittedClaim](#submittedclaim) claim corresponding to the given claim ID.
+
+Will fail if:
+
+- claim is not found among the submitted claims
+
+**Parameters**:
+
+- `claim_id`: String
+
+**Returns**:
+
+[Timestamped](#timestamped)< Signed< [SubmittedClaim](#submittedclaim) > >
 
 ---
 
@@ -320,7 +424,7 @@ Creates a new asset on the network.
 - A [SettledVerifiedClaim](#settledverifiedclaim) will be recorded containing the json-serialized [CreateAssetMessage](#createassetmessage) as its claim
 
 - Input: a signed [CreateAssetMessage](#createassetmessage) defining the asset properties.
-- Returns: the asset ID (hex-encoded 256 bit) of the newly created asset.
+- Returns: A [CreateAssetResult](#createassetresult) containing the asset ID of the newly created asset and the settled create asset claim ID
 
 Will fail if:
 
@@ -335,7 +439,7 @@ Will fail if:
 
 **Returns**:
 
-String
+[CreateAssetResult](#createassetresult)
 
 ---
 
@@ -463,6 +567,30 @@ String
 
 ---
 
+## `vsl_subscribeToSettledClaimsMetadata`
+
+[Subscription](https://geth.ethereum.org/docs/rpc/pubsub) to the settled claims metadata
+
+- yields: a stream of timestamped [SettledClaimData](#settledclaimdata)s
+
+**Returns**:
+
+SubscriptionResult
+
+---
+
+## `vsl_subscribeToSubmittedClaimsMetadata`
+
+[Subscription](https://geth.ethereum.org/docs/rpc/pubsub) to the claim verification requests metadata
+
+- yields: a stream of timestamped [SubmittedClaimData](#submittedclaimdata)s
+
+**Returns**:
+
+SubscriptionResult
+
+---
+
 ## `vsl_subscribeToSettledClaimsForReceiver`
 
 [Subscription](https://geth.ethereum.org/docs/rpc/pubsub) to the settled claims for a receiver
@@ -523,6 +651,28 @@ An (unsigned) vls_submitClaim request for claim-verification
 
 - **to** (array< string >): the list of (Ethereum-style) addresses of accounts which can verify this claim
 
+## SubmittedClaimData
+
+Metadata for a settled (verified) claim
+
+**JSON Schema**: [SubmittedClaimData](SubmittedClaimData.json)
+
+### Fields:
+
+- **claim_type** (string): the claim type (could be any string)
+
+- **expires** ([Timestamp](timestamp))
+
+- **fee** (string): the fee for verification (u128 formatted as hex string).
+
+- **from** (string)
+
+- **nonce** (string): the client nonce (64 bit unsigned integer)
+
+- **quorum** (integer)
+
+- **to** (array< string >): the list of (Ethereum-style) addresses of accounts which can verify this claim
+
 ## VerifiedClaim
 
 Representation of a verified claim
@@ -565,6 +715,20 @@ A settled (verified) claim
 
 - **verifiers** (array< string >): the (Ethereum-style) addresses of the verifiers which have verified the claim and are part of the quorum
 
+## SettledClaimData
+
+Metadata for a settled (verified) claim
+
+**JSON Schema**: [SettledClaimData](SettledClaimData.json)
+
+### Fields:
+
+- **claim_owner** (string): the (Ethereum-style) address of the client which produced this claim
+
+- **claim_type** (string): the claim type
+
+- **verifiers** (array< string >): the (Ethereum-style) addresses of the verifiers which have verified the claim and are part of the quorum
+
 ## PayMessage
 
 An (unsigned) vsl_pay request (in VSL tokens)
@@ -598,6 +762,18 @@ An (unsigned) vsl_createAsset request
 - **ticker_symbol** (string): Ticker symbol to be used for the new asset
 
 - **total_supply** (string): The amount to initialize the new asset with (u128 formatted as hex string)
+
+## CreateAssetResult
+
+The return object of a `vsl_createAsset` request
+
+**JSON Schema**: [CreateAssetResult](CreateAssetResult.json)
+
+### Fields:
+
+- **asset_id** (string): The ID (hex-encoded 256 bit hash) of the asset
+
+- **claim_id** (string): Settled claim ID for the create asset command  (hex-encoded 256 bit hash)
 
 ## TransferAssetMessage
 
