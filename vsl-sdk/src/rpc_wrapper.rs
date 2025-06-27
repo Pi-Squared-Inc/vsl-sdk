@@ -45,11 +45,7 @@ impl TryFrom<CreateAssetMessage> for AssetData {
             decimals,
             total_supply,
         } = create_asset_message;
-        let Ok(account_id) = Address::from_str(&account_id) else {
-            return Err(RpcWrapperError::ParseError(
-                "Cannot parse Address".to_string(),
-            ));
-        };
+        let account_id = account_id.address;
         let Ok(nonce) = u64::from_str_radix(&nonce, 10) else {
             return Err(RpcWrapperError::ParseError(
                 "Cannot parse nonce".to_string(),
@@ -71,7 +67,7 @@ impl TryInto<CreateAssetMessage> for AssetData {
 
     fn try_into(self) -> Result<CreateAssetMessage, Self::Error> {
         Ok(CreateAssetMessage {
-            account_id: self.account_id.to_string(),
+            account_id: self.account_id.clone().into(),
             nonce: self.nonce.to_string(),
             ticker_symbol: self.ticker_symbol,
             decimals: self.decimals,
@@ -274,9 +270,9 @@ where
             claim_type,
             proof,
             nonce: self.nonce().to_string(),
-            to: to.iter().map(ToString::to_string).collect(),
+            to: to.iter().map(|addr| (*addr).clone().into()).collect(),
             quorum,
-            from: self.address().to_string(),
+            from: self.address().clone().into(),
             expires,
             fee: fee.to_hex_str(),
         };
@@ -295,7 +291,7 @@ where
         claim_id: &B256,
     ) -> RpcWrapperResult<()> {
         let settle_claim_message = SettleClaimMessage {
-            from: self.address.to_string(),
+            from: self.address.into(),
             nonce: self.nonce().to_string(),
             target_claim_id: claim_id.to_string(),
         };
@@ -325,9 +321,9 @@ where
     /// - sender balance cannot cover the specified `amount` and the validation fee
     pub async fn pay(&mut self, to: &Address, amount: &Amount) -> RpcWrapperResult<B256> {
         let pay_message = PayMessage {
-            from: self.address().to_string(),
+            from: self.address().clone().into(),
             nonce: self.nonce().to_string(),
-            to: to.to_string(),
+            to: to.clone().into(),
             amount: amount.to_hex_str(),
         };
         let signed_claim = self.sign(pay_message)?;
@@ -426,9 +422,9 @@ where
         amount: &Amount,
     ) -> RpcWrapperResult<TransferAssetMessage> {
         Ok(TransferAssetMessage {
-            from: self.address().to_string(),
+            from: self.address().clone().into(),
             nonce: self.nonce().to_string(),
-            to: to.to_string(),
+            to: to.clone().into(),
             amount: amount.to_hex_str(),
             asset_id: asset_id.to_string(),
         })
@@ -445,7 +441,7 @@ where
     /// - sender balance cannot cover validation fee    
     pub async fn set_account_state(&mut self, state: &AccountStateHash) -> RpcWrapperResult<B256> {
         let set_state_message = SetStateMessage {
-            from: self.address().to_string(),
+            from: self.address().clone().into(),
             nonce: self.nonce().to_string(),
             state: state.to_string(),
         };

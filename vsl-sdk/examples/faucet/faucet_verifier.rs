@@ -132,10 +132,7 @@ pub async fn main() -> RpcWrapperResult<()> {
             continue;
         }
         // Check that the verifier address can be parsed
-        let Ok(verifier_addr) = Address::from_str(&request.to[0]) else {
-            eprintln!("Invalid verifier address");
-            continue;
-        };
+        let verifier_addr = request.to[0].address;
         // Check that the verifier is our account
         if &verifier_addr != account.address() {
             eprintln!("mentioned verifier address different from faucet address");
@@ -206,10 +203,7 @@ pub async fn main() -> RpcWrapperResult<()> {
                     continue;
                 }
                 // decode pay message receiver address
-                let Ok(receiver) = Address::from_str(&pay_message.to) else {
-                    eprintln!("Cannot decode proof pay message receiver address");
-                    continue;
-                };
+                let receiver = pay_message.to.address;
                 // expect payment was made to the client
                 if receiver != client {
                     eprintln!("Expected proof payment was made to the client");
