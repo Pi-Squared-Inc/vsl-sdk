@@ -12,11 +12,19 @@
   "properties": {
     "from": {
       "description": "The (Ethereum-style) address of the account requesting the transfer",
-      "type": "string"
+      "allOf": [
+        {
+          "$ref": "#/definitions/VslAddress"
+        }
+      ]
     },
     "to": {
       "description": "The (Ethereum-style) address of the account receiving the payment",
-      "type": "string"
+      "allOf": [
+        {
+          "$ref": "#/definitions/VslAddress"
+        }
+      ]
     },
     "amount": {
       "description": "The amount to be transfered (u128 formatted as hex string)",
@@ -25,6 +33,19 @@
     "nonce": {
       "description": "The nonce (64 bit unsigned integer) of the account creating the asset",
       "type": "string"
+    }
+  },
+  "definitions": {
+    "VslAddress": {
+      "title": "VslAddress",
+      "description": "An Ethereum address.",
+      "examples": [
+        "0x75c51B0770646902999e55D86c5F399FaF6AbDc7"
+      ],
+      "type": "string",
+      "maxLength": 42,
+      "minLength": 42,
+      "pattern": "^0x[a-fA-F0-9]{40}$"
     }
   }
 }
