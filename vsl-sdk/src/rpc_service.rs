@@ -4,9 +4,9 @@ use jsonrpsee::proc_macros::rpc;
 
 use crate::Timestamp;
 use crate::rpc_messages::{
-    CreateAssetMessage, CreateAssetResult, PayMessage, SetStateMessage, SettleClaimMessage,
-    SettledClaimData, SettledVerifiedClaim, SubmittedClaim, SubmittedClaimData, Timestamped,
-    TransferAssetMessage,
+    AccountData, CreateAssetMessage, CreateAssetResult, PayMessage, SetStateMessage,
+    SettleClaimMessage, SettledClaimData, SettledVerifiedClaim, SubmittedClaim, SubmittedClaimData,
+    Timestamped, TransferAssetMessage,
 };
 
 #[rpc(server, client)]
@@ -57,7 +57,7 @@ pub trait ClaimRpc {
     /// Yields (recent) settled claims metadata
     ///
     /// - Input: a [Timestamp] (`since`)
-    /// - Returns: a list containing metadata for the most recent settled claims recorded since the given timestamp (limited at 64 entries).
+    /// - Returns: a list containing metadata for the settled claims recorded since the given timestamp (limited at 64 entries).
     #[method(name = "vsl_listSettledClaimsMetadata", param_kind = map)]
     async fn list_settled_claims_metadata(
         &self,
@@ -67,7 +67,7 @@ pub trait ClaimRpc {
     /// Yields (recent) submitted claims metadata
     ///
     /// - Input: a [Timestamp] (`since`)
-    /// - Returns: a list containing metadata for the most recent submitted claims recorded since the given timestamp (limited at 64 entries).
+    /// - Returns: a list containing metadata for the submitted claims recorded since the given timestamp (limited at 64 entries).
     #[method(name = "vsl_listSubmittedClaimsMetadata", param_kind = map)]
     async fn list_submitted_claims_metadata(
         &self,
@@ -78,7 +78,7 @@ pub trait ClaimRpc {
     ///
     /// - Input: the (Ethereum-style) address for which settled claims are tracked (optional).
     /// - Input: a [Timestamp] (`since`)
-    /// - Returns: the list of most recent timestamped and signed [SettledVerifiedClaim]s recorded since the given timestamp (limited at 64 entries).
+    /// - Returns: the list of timestamped and signed [SettledVerifiedClaim]s recorded since the given timestamp (limited at 64 entries).
     ///
     /// Will fail if:
     ///
@@ -94,7 +94,7 @@ pub trait ClaimRpc {
     ///
     /// - Input: the (Ethereum-style) address for which claims requests are tracked.
     /// - Input: a [Timestamp] (`since`)
-    /// - Returns: the list of most recent timestamped and signed [SubmittedClaim]s recorded since the given timestamp (limited at 64 entries).
+    /// - Returns: the list of timestamped and signed [SubmittedClaim]s recorded since the given timestamp (limited at 64 entries).
     ///
     /// Will fail if:
     ///
@@ -110,7 +110,7 @@ pub trait ClaimRpc {
     ///
     /// - Input: the (Ethereum-style) address that submitted the claims for settlement.
     /// - Input: a [Timestamp] (`since`).
-    /// - Returns: the list of most recent timestamped and signed [SettledVerifiedClaim]s recorded since the given timestamp (limited at 64 entries).
+    /// - Returns: the list of timestamped and signed [SettledVerifiedClaim]s recorded since the given timestamp (limited at 64 entries).
     ///
     /// Will fail if:
     ///
@@ -126,7 +126,7 @@ pub trait ClaimRpc {
     ///
     /// - Input: the (Ethereum-style) address that submitted the claims for verification.
     /// - Input: a [Timestamp] (`since`)
-    /// - Returns: the list of most recent timestamped and signed [SubmittedClaim]s recorded since the given timestamp (limited at 64 entries).
+    /// - Returns: the list of timestamped and signed [SubmittedClaim]s recorded since the given timestamp (limited at 64 entries).
     ///
     /// Will fail if:
     ///
@@ -140,7 +140,7 @@ pub trait ClaimRpc {
 
     /// Retrieves the claim data contained in the submitted claim with the given ID.
     ///
-    /// - Input: a claim ID, which is the Keccak256 hash of the claim creator, creation nonce, and claim string.
+    /// - Input: a claim ID, which is the Keccak256 hash of the claim creator address as a lowercase string, creation nonce, and claim string.
     /// - Returns: the contents of the `claim` field from the corresponding [SubmittedClaim].
     ///
     /// Will fail if:
@@ -151,7 +151,7 @@ pub trait ClaimRpc {
 
     /// Retrieves the proof contained in the submitted claim with the given ID.
     ///
-    /// - Input: a claim ID, which is the Keccak256 hash of the claim creator, creation nonce, and claim string.
+    /// - Input: a claim ID, which is the Keccak256 hash of the claim creator address as a lowercase string, creation nonce, and claim string.
     /// - Returns: the contents of the `proof` field from the corresponding [SubmittedClaim].
     ///
     /// Will fail if:
@@ -162,7 +162,7 @@ pub trait ClaimRpc {
 
     /// Retrieves a submitted claim by its unique claim ID.
     ///
-    /// - Input: a claim ID, which is the Keccak256 hash of the claim creator, creation nonce, and claim string.
+    /// - Input: a claim ID, which is the Keccak256 hash of the claim creator address as a lowercase string, creation nonce, and claim string.
     /// - Returns: the timestamped and signed [SubmittedClaim] claim corresponding to the given claim ID.
     ///
     /// Will fail if:
@@ -176,7 +176,7 @@ pub trait ClaimRpc {
 
     /// Retrieves a settled claim by its unique claim ID.
     ///
-    /// - Input: a claim ID, which is the Keccak256 hash of the claim creator, creation nonce, and claim string.
+    /// - Input: a claim ID, which is the Keccak256 hash of the claim creator address as a lowercase string, creation nonce, and claim string.
     /// - Returns: the timestamped and signed [SettledVerifiedClaim] claim corresponding to the given claim ID.
     ///
     /// Will fail if:
@@ -207,12 +207,14 @@ pub trait ClaimRpc {
 
     /// Retrieves information about a specific account.
     ///
-    /// Currently not implemented
-    ///
     /// - Input: the (Ethereum-style) address of the account to query.
-    /// - Returns: a JSON string representing the account's metadata.
+    /// - Returns: An [AccountData] structure with information about the account.
+    ///
+    /// Will fail if:
+    ///
+    /// - `account_id` not valid
     #[method(name = "vsl_getAccount", param_kind = map)]
-    async fn get_account(&self, account_id: String) -> RpcResult<String>;
+    async fn get_account(&self, account_id: String) -> RpcResult<AccountData>;
 
     /// Retrieves the native token balance of a given account.
     ///
@@ -296,6 +298,7 @@ pub trait ClaimRpc {
     ///   or `None` if no asset with that id was created.
     ///
     /// Will fail if:
+    ///
     /// - `asset_id` not valid
     #[method(name = "vsl_getAssetById", param_kind = map)]
     async fn get_asset_by_id(&self, asset_id: String) -> RpcResult<Option<CreateAssetMessage>>;

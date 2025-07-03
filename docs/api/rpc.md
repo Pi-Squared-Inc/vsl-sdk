@@ -101,7 +101,7 @@ String
 Yields (recent) settled claims metadata
 
 - Input: a [Timestamp](#timestamp) (`since`)
-- Returns: a list containing metadata for the most recent settled claims recorded since the given timestamp (limited at 64 entries).
+- Returns: a list containing metadata for the settled claims recorded since the given timestamp (limited at 64 entries).
 
 **Parameters**:
 
@@ -118,7 +118,7 @@ Vec< [Timestamped](#timestamped)< [SettledClaimData](#settledclaimdata) > >
 Yields (recent) submitted claims metadata
 
 - Input: a [Timestamp](#timestamp) (`since`)
-- Returns: a list containing metadata for the most recent submitted claims recorded since the given timestamp (limited at 64 entries).
+- Returns: a list containing metadata for the submitted claims recorded since the given timestamp (limited at 64 entries).
 
 **Parameters**:
 
@@ -136,7 +136,7 @@ Yields (recent) settled claims for a receiver.
 
 - Input: the (Ethereum-style) address for which settled claims are tracked (optional).
 - Input: a [Timestamp](#timestamp) (`since`)
-- Returns: the list of most recent timestamped and signed [SettledVerifiedClaim](#settledverifiedclaim)s recorded since the given timestamp (limited at 64 entries).
+- Returns: the list of timestamped and signed [SettledVerifiedClaim](#settledverifiedclaim)s recorded since the given timestamp (limited at 64 entries).
 
 Will fail if:
 
@@ -159,7 +159,7 @@ Yields (recent) claim verification requests for a receiver.
 
 - Input: the (Ethereum-style) address for which claims requests are tracked.
 - Input: a [Timestamp](#timestamp) (`since`)
-- Returns: the list of most recent timestamped and signed [SubmittedClaim](#submittedclaim)s recorded since the given timestamp (limited at 64 entries).
+- Returns: the list of timestamped and signed [SubmittedClaim](#submittedclaim)s recorded since the given timestamp (limited at 64 entries).
 
 Will fail if:
 
@@ -182,7 +182,7 @@ Yields (recent) settled claims from an address.
 
 - Input: the (Ethereum-style) address that submitted the claims for settlement.
 - Input: a [Timestamp](#timestamp) (`since`).
-- Returns: the list of most recent timestamped and signed [SettledVerifiedClaim](#settledverifiedclaim)s recorded since the given timestamp (limited at 64 entries).
+- Returns: the list of timestamped and signed [SettledVerifiedClaim](#settledverifiedclaim)s recorded since the given timestamp (limited at 64 entries).
 
 Will fail if:
 
@@ -205,7 +205,7 @@ Yields (recent) claim verification requests from an address.
 
 - Input: the (Ethereum-style) address that submitted the claims for verification.
 - Input: a [Timestamp](#timestamp) (`since`)
-- Returns: the list of most recent timestamped and signed [SubmittedClaim](#submittedclaim)s recorded since the given timestamp (limited at 64 entries).
+- Returns: the list of timestamped and signed [SubmittedClaim](#submittedclaim)s recorded since the given timestamp (limited at 64 entries).
 
 Will fail if:
 
@@ -226,7 +226,7 @@ Vec< [Timestamped](#timestamped)< Signed< [SubmittedClaim](#submittedclaim) > > 
 
 Retrieves the claim data contained in the submitted claim with the given ID.
 
-- Input: a claim ID, which is the Keccak256 hash of the claim creator, creation nonce, and claim string.
+- Input: a claim ID, which is the Keccak256 hash of the claim creator address as a lowercase string, creation nonce, and claim string.
 - Returns: the contents of the `claim` field from the corresponding [SubmittedClaim](#submittedclaim).
 
 Will fail if:
@@ -247,7 +247,7 @@ String
 
 Retrieves the proof contained in the submitted claim with the given ID.
 
-- Input: a claim ID, which is the Keccak256 hash of the claim creator, creation nonce, and claim string.
+- Input: a claim ID, which is the Keccak256 hash of the claim creator address as a lowercase string, creation nonce, and claim string.
 - Returns: the contents of the `proof` field from the corresponding [SubmittedClaim](#submittedclaim).
 
 Will fail if:
@@ -268,7 +268,7 @@ String
 
 Retrieves a submitted claim by its unique claim ID.
 
-- Input: a claim ID, which is the Keccak256 hash of the claim creator, creation nonce, and claim string.
+- Input: a claim ID, which is the Keccak256 hash of the claim creator address as a lowercase string, creation nonce, and claim string.
 - Returns: the timestamped and signed [SubmittedClaim](#submittedclaim) claim corresponding to the given claim ID.
 
 Will fail if:
@@ -289,7 +289,7 @@ Will fail if:
 
 Retrieves a settled claim by its unique claim ID.
 
-- Input: a claim ID, which is the Keccak256 hash of the claim creator, creation nonce, and claim string.
+- Input: a claim ID, which is the Keccak256 hash of the claim creator address as a lowercase string, creation nonce, and claim string.
 - Returns: the timestamped and signed [SettledVerifiedClaim](#settledverifiedclaim) claim corresponding to the given claim ID.
 
 Will fail if:
@@ -337,10 +337,12 @@ String
 
 Retrieves information about a specific account.
 
-Currently not implemented
-
 - Input: the (Ethereum-style) address of the account to query.
-- Returns: a JSON string representing the account's metadata.
+- Returns: An [AccountData](#accountdata) structure with information about the account.
+
+Will fail if:
+
+- `account_id` not valid
 
 **Parameters**:
 
@@ -348,7 +350,7 @@ Currently not implemented
 
 **Returns**:
 
-String
+[AccountData](#accountdata)
 
 ---
 
@@ -478,6 +480,7 @@ Retrieves creation metadata for a given asset by its ID.
   or `None` if no asset with that id was created.
 
 Will fail if:
+
 - `asset_id` not valid
 
 **Parameters**:
@@ -637,11 +640,11 @@ An (unsigned) vls_submitClaim request for claim-verification
 
 - **claim_type** (string): the claim type (could be any string)
 
-- **expires** ([Timestamp](timestamp))
+- **expires** ([Timestamp](#timestamp))
 
 - **fee** (string): the fee for verification (u128 formatted as hex string).
 
-- **from** (string)
+- **from** ([VslAddress](#vsladdress))
 
 - **nonce** (string): the client nonce (64 bit unsigned integer)
 
@@ -649,11 +652,11 @@ An (unsigned) vls_submitClaim request for claim-verification
 
 - **quorum** (integer)
 
-- **to** (array< string >): the list of (Ethereum-style) addresses of accounts which can verify this claim
+- **to** (array< [VslAddress](#vsladdress) >): the list of (Ethereum-style) addresses of accounts which can verify this claim
 
 ## SubmittedClaimData
 
-Metadata for a settled (verified) claim
+Metadata for a submitted claim
 
 **JSON Schema**: [SubmittedClaimData](SubmittedClaimData.json)
 
@@ -661,17 +664,17 @@ Metadata for a settled (verified) claim
 
 - **claim_type** (string): the claim type (could be any string)
 
-- **expires** ([Timestamp](timestamp))
+- **expires** ([Timestamp](#timestamp))
 
 - **fee** (string): the fee for verification (u128 formatted as hex string).
 
-- **from** (string)
+- **from** ([VslAddress](#vsladdress))
 
 - **nonce** (string): the client nonce (64 bit unsigned integer)
 
 - **quorum** (integer)
 
-- **to** (array< string >): the list of (Ethereum-style) addresses of accounts which can verify this claim
+- **to** (array< [VslAddress](#vsladdress) >): the list of (Ethereum-style) addresses of accounts which can verify this claim
 
 ## VerifiedClaim
 
@@ -685,7 +688,7 @@ Representation of a verified claim
 
 - **claim_id** (string): the id (hex-encoded 256 bit hash) of the claim (useful for retrieving the full data of the claim)
 
-- **claim_owner** (string): the (Ethereum-style) address of the client which produced this claim
+- **claim_owner** ([VslAddress](#vsladdress)): the (Ethereum-style) address of the client which produced this claim
 
 - **claim_type** (string): the claim type
 
@@ -697,7 +700,7 @@ An (unsigned) vls_settleClaim request made by a verifier having verified the cla
 
 ### Fields:
 
-- **from** (string): The (Ethereum-style) address of the verifier requesting claim settlement
+- **from** ([VslAddress](#vsladdress)): The (Ethereum-style) address of the verifier requesting claim settlement
 
 - **nonce** (string): The nonce (64 bit unsigned integer) of the verifier requesting claim settlement
 
@@ -711,9 +714,9 @@ A settled (verified) claim
 
 ### Fields:
 
-- **verified_claim** ([VerifiedClaim](verifiedclaim)): the claim which was verified
+- **verified_claim** ([VerifiedClaim](#verifiedclaim)): the claim which was verified
 
-- **verifiers** (array< string >): the (Ethereum-style) addresses of the verifiers which have verified the claim and are part of the quorum
+- **verifiers** (array< [VslAddress](#vsladdress) >): the (Ethereum-style) addresses of the verifiers which have verified the claim and are part of the quorum
 
 ## SettledClaimData
 
@@ -723,11 +726,11 @@ Metadata for a settled (verified) claim
 
 ### Fields:
 
-- **claim_owner** (string): the (Ethereum-style) address of the client which produced this claim
+- **claim_owner** ([VslAddress](#vsladdress)): the (Ethereum-style) address of the client which produced this claim
 
 - **claim_type** (string): the claim type
 
-- **verifiers** (array< string >): the (Ethereum-style) addresses of the verifiers which have verified the claim and are part of the quorum
+- **verifiers** (array< [VslAddress](#vsladdress) >): the (Ethereum-style) addresses of the verifiers which have verified the claim and are part of the quorum
 
 ## PayMessage
 
@@ -739,11 +742,11 @@ An (unsigned) vsl_pay request (in VSL tokens)
 
 - **amount** (string): The amount to be transfered (u128 formatted as hex string)
 
-- **from** (string): The (Ethereum-style) address of the account requesting the transfer
+- **from** ([VslAddress](#vsladdress)): The (Ethereum-style) address of the account requesting the transfer
 
 - **nonce** (string): The nonce (64 bit unsigned integer) of the account creating the asset
 
-- **to** (string): The (Ethereum-style) address of the account receiving the payment
+- **to** ([VslAddress](#vsladdress)): The (Ethereum-style) address of the account receiving the payment
 
 ## CreateAssetMessage
 
@@ -753,7 +756,7 @@ An (unsigned) vsl_createAsset request
 
 ### Fields:
 
-- **account_id** (string): The (Ethereum-style) address of the account creating the asset
+- **account_id** ([VslAddress](#vsladdress)): The (Ethereum-style) address of the account creating the asset
 
 - **decimals** (integer): Number of decimals
 
@@ -775,6 +778,22 @@ The return object of a `vsl_createAsset` request
 
 - **claim_id** (string): Settled claim ID for the create asset command  (hex-encoded 256 bit hash)
 
+## AccountData
+
+Collected public data about an account
+
+**JSON Schema**: [AccountData](AccountData.json)
+
+### Fields:
+
+- **asset_balances** (object): The balances of all assets held by the account.
+
+- **balance** (string): the account native token balance (u128 formatted as hex string).
+
+- **nonce** (integer): the account nonce (64 bit unsigned integer)
+
+- **state** ("string", optional): the current state of the account (a 256-bit hash), or `None` if unset.
+
 ## TransferAssetMessage
 
 An (unsigned) vsl_transferAsset request
@@ -787,11 +806,11 @@ An (unsigned) vsl_transferAsset request
 
 - **asset_id** (string): The id (hex-encoded 256 bit hash) of the asset (returned when asset was created)
 
-- **from** (string): The (Ethereum-style) address of the account transfering the asset
+- **from** ([VslAddress](#vsladdress)): The (Ethereum-style) address of the account transfering the asset
 
 - **nonce** (string): The nonce (64 bit unsigned integer) of the account transfering the asset
 
-- **to** (string): The (Ethereum-style) address of the account receiving the asset
+- **to** ([VslAddress](#vsladdress)): The (Ethereum-style) address of the account receiving the asset
 
 ## SetStateMessage
 
@@ -801,7 +820,7 @@ An (unsigned) vsl_setState request
 
 ### Fields:
 
-- **from** (string): The (Ethereum-style) address of the account requesting its state to be changed
+- **from** ([VslAddress](#vsladdress)): The (Ethereum-style) address of the account requesting its state to be changed
 
 - **nonce** (string): The nonce (64 bit unsigned integer) of the account requesting its state to be changed
 
@@ -818,3 +837,9 @@ Records the time elapsed from the [UNIX_EPOCH]
 - **nanos** (integer): the _remaining fraction_ of a second, expressed in nano-seconds
 
 - **seconds** (integer): Time elapsed from the [UNIX_EPOCH] (in seconds, truncated)
+
+## VslAddress
+
+An Ethereum address.
+
+**JSON Schema**: [VslAddress](VslAddress.json)
