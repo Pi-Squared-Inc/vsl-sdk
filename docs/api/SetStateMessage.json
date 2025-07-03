@@ -11,7 +11,11 @@
   "properties": {
     "from": {
       "description": "The (Ethereum-style) address of the account requesting its state to be changed",
-      "type": "string"
+      "allOf": [
+        {
+          "$ref": "#/definitions/VslAddress"
+        }
+      ]
     },
     "nonce": {
       "description": "The nonce (64 bit unsigned integer) of the account requesting its state to be changed",
@@ -20,6 +24,19 @@
     "state": {
       "description": "The new state (hex-encoded 256 bit hash)",
       "type": "string"
+    }
+  },
+  "definitions": {
+    "VslAddress": {
+      "title": "VslAddress",
+      "description": "An Ethereum address.",
+      "examples": [
+        "0x75c51B0770646902999e55D86c5F399FaF6AbDc7"
+      ],
+      "type": "string",
+      "maxLength": 42,
+      "minLength": 42,
+      "pattern": "^0x[a-fA-F0-9]{40}$"
     }
   }
 }

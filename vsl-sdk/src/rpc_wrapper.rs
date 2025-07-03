@@ -17,8 +17,7 @@ use crate::rpc_messages::{
     PayMessage, SetStateMessage, SettleClaimMessage, SettledClaimData, SettledVerifiedClaim,
     SubmittedClaim, SubmittedClaimData, Timestamped, TransferAssetMessage,
 };
-use crate::{Address, B256, ParseAmountError, Timestamp};
-use crate::{Amount, AssetId};
+use crate::{Address, Amount, AssetId, B256, ParseAmountError, Timestamp};
 
 /// Metadata about an asset
 pub struct AssetData {
@@ -245,7 +244,7 @@ where
     }
 
     pub fn claim_id(&self, claim: &str) -> B256 {
-        SubmittedClaim::claim_id_hash(&self.address.to_string(), &self.nonce.to_string(), claim)
+        SubmittedClaim::claim_id_hash(&self.address, &self.nonce.to_string(), claim)
     }
 
     pub async fn submit_claim(
@@ -291,7 +290,7 @@ where
         claim_id: &B256,
     ) -> RpcWrapperResult<()> {
         let settle_claim_message = SettleClaimMessage {
-            from: self.address.into(),
+            from: self.address.clone().into(),
             nonce: self.nonce().to_string(),
             target_claim_id: claim_id.to_string(),
         };
@@ -438,7 +437,7 @@ where
     ///
     /// Will fail if:
     ///
-    /// - sender balance cannot cover validation fee    
+    /// - sender balance cannot cover validation fee
     pub async fn set_account_state(&mut self, state: &AccountStateHash) -> RpcWrapperResult<B256> {
         let set_state_message = SetStateMessage {
             from: self.address().clone().into(),
@@ -456,7 +455,7 @@ where
 
     /// Retrieves a settled claim by its unique claim ID.
     ///
-    /// - Input: a claim ID, which is the Keccak256 hash of the claim creator, creation nonce, and claim string.
+    /// - Input: a claim ID, which is the Keccak256 hash of the claim creator address as a lowercase string, creation nonce, and claim string.
     /// - Returns: the timestamped and signed [SettledVerifiedClaim] claim corresponding to the given claim ID.
     ///
     /// Will fail if:
@@ -464,7 +463,7 @@ where
     /// - claim is not found among the settled claims
     pub async fn get_settled_claim_by_id(
         &self,
-        // the Keccak256 hash of the claim creator, creation nonce, and claim string.
+        // the Keccak256 hash of the claim creator address as a lowercase string, creation nonce, and claim string.
         claim_id: &B256,
     ) -> RpcWrapperResult<Timestamped<Signed<SettledVerifiedClaim>>> {
         get_settled_claim_by_id(&self.rpc_client, claim_id).await
@@ -472,7 +471,7 @@ where
 
     /// Retrieves a submitted claim by its unique claim ID.
     ///
-    /// - Input: a claim ID, which is the Keccak256 hash of the claim creator, creation nonce, and claim string.
+    /// - Input: a claim ID, which is the Keccak256 hash of the claim creator address as a lowercase string, creation nonce, and claim string.
     /// - Returns: the timestamped and signed [SubmittedClaim] claim corresponding to the given claim ID.
     ///
     /// Will fail if:
@@ -480,7 +479,7 @@ where
     /// - claim is not found among the submitted claims
     pub async fn get_submitted_claim_by_id(
         &self,
-        // the Keccak256 hash of the claim creator, creation nonce, and claim string.
+        // the Keccak256 hash of the claim creator address as a lowercase string, creation nonce, and claim string.
         claim_id: &B256,
     ) -> RpcWrapperResult<Timestamped<Signed<SubmittedClaim>>> {
         get_submitted_claim_by_id(&self.rpc_client, claim_id).await
@@ -488,7 +487,7 @@ where
 
     /// Retrieves the claim data contained in the submitted claim with the given ID.
     ///
-    /// - Input: a claim ID, which is the Keccak256 hash of the claim creator, creation nonce, and claim string.
+    /// - Input: a claim ID, which is the Keccak256 hash of the claim creator address as a lowercase string, creation nonce, and claim string.
     /// - Returns: the contents of the `claim` field from the corresponding [SubmittedClaim].
     ///
     /// Will fail if:
@@ -496,7 +495,7 @@ where
     /// - no claim with given ID is not found among the submitted claims
     pub async fn get_claim_data_by_id(
         &self,
-        // the Keccak256 hash of the claim creator, creation nonce, and claim string.
+        // the Keccak256 hash of the claim creator address as a lowercase string, creation nonce, and claim string.
         claim_id: &B256,
     ) -> RpcWrapperResult<String> {
         get_claim_data_by_id(self.rpc_client(), claim_id).await
@@ -504,7 +503,7 @@ where
 
     /// Retrieves the proof contained in the submitted claim with the given ID.
     ///
-    /// - Input: a claim ID, which is the Keccak256 hash of the claim creator, creation nonce, and claim string.
+    /// - Input: a claim ID, which is the Keccak256 hash of the claim creator address as a lowercase string, creation nonce, and claim string.
     /// - Returns: the contents of the `proof` field from the corresponding [SubmittedClaim].
     ///
     /// Will fail if:
@@ -512,7 +511,7 @@ where
     /// - no claim with given ID is not found among the submitted claims
     pub async fn get_proof_by_id(
         &self,
-        // the Keccak256 hash of the claim creator, creation nonce, and claim string.
+        // the Keccak256 hash of the claim creator address as a lowercase string, creation nonce, and claim string.
         claim_id: &B256,
     ) -> RpcWrapperResult<String> {
         get_proof_by_id(self.rpc_client(), claim_id).await
@@ -629,7 +628,7 @@ where
 
 /// Retrieves the claim data contained in the submitted claim with the given ID.
 ///
-/// - Input: a claim ID, which is the Keccak256 hash of the claim creator, creation nonce, and claim string.
+/// - Input: a claim ID, which is the Keccak256 hash of the claim creator address as a lowercase string, creation nonce, and claim string.
 /// - Returns: the contents of the `claim` field from the corresponding [SubmittedClaim].
 ///
 /// Will fail if:
@@ -637,7 +636,7 @@ where
 /// - no claim with given ID is not found among the submitted claims
 pub async fn get_claim_data_by_id<T: ClientT>(
     rpc_client: &T,
-    // the Keccak256 hash of the claim creator, creation nonce, and claim string.
+    // the Keccak256 hash of the claim creator address as a lowercase string, creation nonce, and claim string.
     claim_id: &B256,
 ) -> RpcWrapperResult<String> {
     let response = rpc_client
@@ -648,7 +647,7 @@ pub async fn get_claim_data_by_id<T: ClientT>(
 
 /// Retrieves the proof contained in the submitted claim with the given ID.
 ///
-/// - Input: a claim ID, which is the Keccak256 hash of the claim creator, creation nonce, and claim string.
+/// - Input: a claim ID, which is the Keccak256 hash of the claim creator address as a lowercase string, creation nonce, and claim string.
 /// - Returns: the contents of the `proof` field from the corresponding [SubmittedClaim].
 ///
 /// Will fail if:
@@ -656,7 +655,7 @@ pub async fn get_claim_data_by_id<T: ClientT>(
 /// - no claim with given ID is not found among the submitted claims
 pub async fn get_proof_by_id<T: ClientT>(
     rpc_client: &T,
-    // the Keccak256 hash of the claim creator, creation nonce, and claim string.
+    // the Keccak256 hash of the claim creator address as a lowercase string, creation nonce, and claim string.
     claim_id: &B256,
 ) -> RpcWrapperResult<String> {
     let response = rpc_client
@@ -667,7 +666,7 @@ pub async fn get_proof_by_id<T: ClientT>(
 
 /// Retrieves a submitted claim by its unique claim ID.
 ///
-/// - Input: a claim ID, which is the Keccak256 hash of the claim creator, creation nonce, and claim string.
+/// - Input: a claim ID, which is the Keccak256 hash of the claim creator address as a lowercase string, creation nonce, and claim string.
 /// - Returns: the timestamped and signed [SubmittedClaim] claim corresponding to the given claim ID.
 ///
 /// Will fail if:
@@ -675,7 +674,7 @@ pub async fn get_proof_by_id<T: ClientT>(
 /// - claim is not found among the submitted claims
 pub async fn get_submitted_claim_by_id<T: ClientT>(
     rpc_client: &T,
-    // the Keccak256 hash of the claim creator, creation nonce, and claim string.
+    // the Keccak256 hash of the claim creator address as a lowercase string, creation nonce, and claim string.
     claim_id: &B256,
 ) -> RpcWrapperResult<Timestamped<Signed<SubmittedClaim>>> {
     let response = rpc_client
@@ -689,7 +688,7 @@ pub async fn get_submitted_claim_by_id<T: ClientT>(
 
 /// Retrieves a settled claim by its unique claim ID.
 ///
-/// - Input: a claim ID, which is the Keccak256 hash of the claim creator, creation nonce, and claim string.
+/// - Input: a claim ID, which is the Keccak256 hash of the claim creator address as a lowercase string, creation nonce, and claim string.
 /// - Returns: the timestamped and signed [SettledVerifiedClaim] claim corresponding to the given claim ID.
 ///
 /// Will fail if:
@@ -697,7 +696,7 @@ pub async fn get_submitted_claim_by_id<T: ClientT>(
 /// - claim is not found among the settled claims
 pub async fn get_settled_claim_by_id<T: ClientT>(
     rpc_client: &T,
-    // the Keccak256 hash of the claim creator, creation nonce, and claim string.
+    // the Keccak256 hash of the claim creator address as a lowercase string, creation nonce, and claim string.
     claim_id: &B256,
 ) -> RpcWrapperResult<Timestamped<Signed<SettledVerifiedClaim>>> {
     let response = rpc_client

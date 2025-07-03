@@ -4,7 +4,9 @@ pub mod rpc_wrapper;
 mod helpers;
 mod timestamp;
 
-use std::{fmt::Display, num::ParseIntError, ops::Mul};
+use std::fmt::Display;
+use std::num::ParseIntError;
+use std::ops::Mul;
 
 pub use crate::helpers::{HasSender, IntoSigned};
 pub use alloy::primitives::{Address, B256, wrap_fixed_bytes};

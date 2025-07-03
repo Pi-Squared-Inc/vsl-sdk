@@ -1,15 +1,15 @@
-use std::{path::PathBuf, str::FromStr};
+use std::path::PathBuf;
+use std::str::FromStr;
 
 use clap::Parser;
 use config::Config;
-use jsonrpsee::{http_client::HttpClientBuilder, ws_client::WsClientBuilder};
+use jsonrpsee::http_client::HttpClientBuilder;
+use jsonrpsee::ws_client::WsClientBuilder;
 use serde::Deserialize;
 use sled::{Db, IVec};
-use vsl_sdk::{
-    Address, Amount, B256, HasSender, IntoSigned, Timestamp,
-    rpc_messages::{IdentifiableClaim, PayMessage, SubmittedClaim},
-    rpc_wrapper::{self, RpcWrapper, RpcWrapperResult},
-};
+use vsl_sdk::rpc_messages::{IdentifiableClaim, PayMessage, SubmittedClaim};
+use vsl_sdk::rpc_wrapper::{self, RpcWrapper, RpcWrapperResult};
+use vsl_sdk::{Address, Amount, B256, HasSender, IntoSigned, Timestamp};
 
 /// Example Faucet verifier for the VSL devnet
 ///
@@ -131,10 +131,8 @@ pub async fn main() -> RpcWrapperResult<()> {
             eprintln!("Expected a single verifier");
             continue;
         }
-        // Check that the verifier address can be parsed
-        let verifier_addr = request.to[0].address;
         // Check that the verifier is our account
-        if &verifier_addr != account.address() {
+        if &request.to[0].address != account.address() {
             eprintln!("mentioned verifier address different from faucet address");
             continue;
         }
@@ -202,10 +200,8 @@ pub async fn main() -> RpcWrapperResult<()> {
                     eprintln!("Expected proof payment was made from the master account");
                     continue;
                 }
-                // decode pay message receiver address
-                let receiver = pay_message.to.address;
                 // expect payment was made to the client
-                if receiver != client {
+                if pay_message.to.address != client {
                     eprintln!("Expected proof payment was made to the client");
                     continue;
                 }

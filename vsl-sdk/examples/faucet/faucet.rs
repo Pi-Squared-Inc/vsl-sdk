@@ -1,14 +1,14 @@
-use std::{collections::HashSet, path::PathBuf, time::Duration};
+use std::collections::HashSet;
+use std::path::PathBuf;
+use std::time::Duration;
 
 use clap::Parser;
 use config::Config;
 use jsonrpsee::http_client::HttpClientBuilder;
 use serde::Deserialize;
 use tokio::time::sleep;
-use vsl_sdk::{
-    Address, Amount, IntoSigned, Timestamp,
-    rpc_wrapper::{self, RpcWrapper, RpcWrapperResult},
-};
+use vsl_sdk::rpc_wrapper::{self, RpcWrapper, RpcWrapperResult};
+use vsl_sdk::{Address, Amount, IntoSigned, Timestamp};
 
 const LOOP_INTERVAL: u64 = 5; // seconds
 
