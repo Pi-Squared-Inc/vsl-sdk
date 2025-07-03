@@ -140,7 +140,7 @@ pub trait ClaimRpc {
 
     /// Retrieves the claim data contained in the submitted claim with the given ID.
     ///
-    /// - Input: a claim ID, which is the Keccak256 hash of the claim creator, creation nonce, and claim string.
+    /// - Input: a claim ID, which is the Keccak256 hash of the claim creator address as a lowercase string, creation nonce, and claim string.
     /// - Returns: the contents of the `claim` field from the corresponding [SubmittedClaim].
     ///
     /// Will fail if:
@@ -151,7 +151,7 @@ pub trait ClaimRpc {
 
     /// Retrieves the proof contained in the submitted claim with the given ID.
     ///
-    /// - Input: a claim ID, which is the Keccak256 hash of the claim creator, creation nonce, and claim string.
+    /// - Input: a claim ID, which is the Keccak256 hash of the claim creator address as a lowercase string, creation nonce, and claim string.
     /// - Returns: the contents of the `proof` field from the corresponding [SubmittedClaim].
     ///
     /// Will fail if:
@@ -162,7 +162,7 @@ pub trait ClaimRpc {
 
     /// Retrieves a submitted claim by its unique claim ID.
     ///
-    /// - Input: a claim ID, which is the Keccak256 hash of the claim creator, creation nonce, and claim string.
+    /// - Input: a claim ID, which is the Keccak256 hash of the claim creator address as a lowercase string, creation nonce, and claim string.
     /// - Returns: the timestamped and signed [SubmittedClaim] claim corresponding to the given claim ID.
     ///
     /// Will fail if:
@@ -176,7 +176,7 @@ pub trait ClaimRpc {
 
     /// Retrieves a settled claim by its unique claim ID.
     ///
-    /// - Input: a claim ID, which is the Keccak256 hash of the claim creator, creation nonce, and claim string.
+    /// - Input: a claim ID, which is the Keccak256 hash of the claim creator address as a lowercase string, creation nonce, and claim string.
     /// - Returns: the timestamped and signed [SettledVerifiedClaim] claim corresponding to the given claim ID.
     ///
     /// Will fail if:

@@ -55,7 +55,7 @@ impl fmt::Display for VslAddress {
 
 impl JsonSchema for VslAddress {
     fn schema_name() -> String {
-        "Address".to_string()
+        "VslAddress".to_string()
     }
 
     fn schema_id() -> Cow<'static, str> {
@@ -72,9 +72,13 @@ impl JsonSchema for VslAddress {
                 deprecated: false,
                 read_only: false,
                 write_only: false,
-                examples: vec![serde_json::json!("0x75c51B0770646902999e55D86c5F399FaF6AbDc7")],
+                examples: vec![serde_json::json!(
+                    "0x75c51B0770646902999e55D86c5F399FaF6AbDc7"
+                )],
             })),
-            instance_type: Some(SingleOrVec::Single(Box::new(schemars::schema::InstanceType::String))),
+            instance_type: Some(SingleOrVec::Single(Box::new(
+                schemars::schema::InstanceType::String,
+            ))),
             format: None,
             enum_values: None,
             const_value: None,
@@ -98,7 +102,6 @@ impl From<Address> for VslAddress {
         VslAddress { address }
     }
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 /// Some data with an identifier and an associated timestamp
@@ -471,19 +474,14 @@ impl From<SetStateMessage> for ValidatorVerifiedClaim {
 pub trait IdentifiableClaim {
     fn claim_str(&self) -> &str;
     fn claim_nonce_str(&self) -> &str;
-    fn claim_owner_string(&self) -> String;
+    fn claim_owner(&self) -> &Address;
     fn claim_id(&self) -> B256 {
-        let owner = self.claim_owner_string();
-        Self::claim_id_hash(
-            &owner,
-            self.claim_nonce_str(),
-            self.claim_str(),
-        )
+        Self::claim_id_hash(self.claim_owner(), self.claim_nonce_str(), self.claim_str())
     }
 
-    fn claim_id_hash(owner: &str, nonce: &str, claim: &str) -> B256 {
+    fn claim_id_hash(owner: &Address, nonce: &str, claim: &str) -> B256 {
         let mut hasher = Keccak256::new();
-        hasher.update(owner);
+        hasher.update(owner.to_string().to_lowercase());
         hasher.update(nonce);
         hasher.update(claim);
         hasher.finalize()
@@ -499,8 +497,8 @@ impl IdentifiableClaim for SubmittedClaim {
         &self.nonce
     }
 
-    fn claim_owner_string(&self) -> String {
-        self.from.to_string()
+    fn claim_owner(&self) -> &Address {
+        &self.from.address
     }
 }
 
@@ -513,8 +511,8 @@ impl IdentifiableClaim for VerifiedClaim {
         unimplemented!()
     }
 
-    fn claim_owner_string(&self) -> String {
-        self.claim_owner.to_string()
+    fn claim_owner(&self) -> &Address {
+        &self.claim_owner.address
     }
 
     fn claim_id(&self) -> B256 {
@@ -531,14 +529,13 @@ impl IdentifiableClaim for PayMessage {
         &self.nonce
     }
 
-    fn claim_owner_string(&self) -> String {
-        self.from.to_string()
+    fn claim_owner(&self) -> &Address {
+        &self.from.address
     }
 
     fn claim_id(&self) -> B256 {
-        let owner = self.claim_owner_string();
         Self::claim_id_hash(
-            &owner,
+            self.claim_owner(),
             self.claim_nonce_str(),
             &serde_json::to_string(&ValidatorVerifiedClaim::from(self)).unwrap(),
         )
@@ -554,14 +551,13 @@ impl IdentifiableClaim for CreateAssetMessage {
         &self.nonce
     }
 
-    fn claim_owner_string(&self) -> String {
-        self.account_id.to_string()
+    fn claim_owner(&self) -> &Address {
+        &self.account_id.address
     }
 
     fn claim_id(&self) -> B256 {
-        let owner = self.claim_owner_string();
         Self::claim_id_hash(
-            &owner,
+            self.claim_owner(),
             self.claim_nonce_str(),
             &serde_json::to_string(&ValidatorVerifiedClaim::from(self)).unwrap(),
         )
@@ -577,14 +573,13 @@ impl IdentifiableClaim for TransferAssetMessage {
         &self.nonce
     }
 
-    fn claim_owner_string(&self) -> String {
-        self.from.to_string()
+    fn claim_owner(&self) -> &Address {
+        &self.from.address
     }
 
     fn claim_id(&self) -> B256 {
-        let owner = self.claim_owner_string();
         Self::claim_id_hash(
-            &owner,
+            &self.claim_owner(),
             self.claim_nonce_str(),
             &serde_json::to_string(&ValidatorVerifiedClaim::from(self)).unwrap(),
         )
